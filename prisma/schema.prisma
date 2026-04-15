@@ -1,0 +1,71 @@
+// Aether — data model
+//
+// LOCAL DEV:  DATABASE_URL="file:./dev.db"          (SQLite, no setup needed)
+// PRODUCTION: DATABASE_URL="postgresql://..."        (Neon, Supabase, Railway)
+//
+// To switch to Postgres, change provider below to "postgresql"
+// and update your DATABASE_URL in .env / Vercel env vars.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Plan stored as String — SQLite does not support enums.
+// Values: "FREE" | "STARTER" | "GROWTH" | "SCALE"
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime  @default(now())
+
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  plan                 String    @default("FREE")
+  planRenewsAt         DateTime?
+  runsUsedThisPeriod   Int       @default(0)
+
+  agents Agent[]
+  runs   Run[]
+}
+
+model Agent {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  role         String
+  description  String?
+  systemPrompt String
+  model        String   @default("gpt-4o-mini")
+  temperature  Float    @default(0.4)
+  tools        String   @default("[]")
+  knowledge    String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  runs Run[]
+}
+
+model Run {
+  id         String    @id @default(cuid())
+  agentId    String
+  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  input      String
+  output     String?
+  status     String    @default("pending")
+  tokensIn   Int       @default(0)
+  tokensOut  Int       @default(0)
+  costCents  Int       @default(0)
+  error      String?
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+}
