@@ -8,20 +8,19 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_place
 
 export const PRICE_IDS = {
   STARTER: process.env.STRIPE_PRICE_STARTER || "",
-  GROWTH: process.env.STRIPE_PRICE_GROWTH || "",
-  SCALE: process.env.STRIPE_PRICE_SCALE || "",
+  GROWTH:  process.env.STRIPE_PRICE_GROWTH  || "",
+  SCALE:   process.env.STRIPE_PRICE_SCALE   || "",
 } as const;
 
 export const PLAN_LIMITS = {
-  FREE:    { monthlyRuns: 25,     agents: 1,   label: "Free" },
+  FREE:    { monthlyRuns: 25,     agents: 1,   label: "Free"    },
   STARTER: { monthlyRuns: 500,    agents: 3,   label: "Starter" },
-  GROWTH:  { monthlyRuns: 5_000,  agents: 10,  label: "Growth" },
-  SCALE:   { monthlyRuns: 50_000, agents: 100, label: "Scale" },
+  GROWTH:  { monthlyRuns: 5_000,  agents: 10,  label: "Growth"  },
+  SCALE:   { monthlyRuns: 50_000, agents: 100, label: "Scale"   },
 } as const;
 
 export type PlanKey = keyof typeof PLAN_LIMITS;
 
-/** Safely cast a string from the DB to a PlanKey (defaults to FREE). */
 export function toPlanKey(plan: string): PlanKey {
   if (plan in PLAN_LIMITS) return plan as PlanKey;
   return "FREE";
@@ -30,7 +29,7 @@ export function toPlanKey(plan: string): PlanKey {
 export function priceIdToPlan(priceId?: string | null): PlanKey {
   if (!priceId) return "FREE";
   if (priceId === PRICE_IDS.STARTER) return "STARTER";
-  if (priceId === PRICE_IDS.GROWTH) return "GROWTH";
-  if (priceId === PRICE_IDS.SCALE) return "SCALE";
+  if (priceId === PRICE_IDS.GROWTH)  return "GROWTH";
+  if (priceId === PRICE_IDS.SCALE)   return "SCALE";
   return "FREE";
 }
