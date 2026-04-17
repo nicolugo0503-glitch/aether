@@ -5,20 +5,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#07070a",
-        panel: "#0d0d12",
-        border: "#1d1d25",
-        muted: "#8b8b96",
-        accent: "#7c5cff",
+        bg:         "#000000",
+        panel:      "#0a0a0a",
+        border:     "rgba(255,255,255,0.06)",
+        muted:      "#71717a",
+        accent:     "#7c3aed",
         "accent-2": "#22d3ee",
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "Inter", "sans-serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        sans: ["ui-sans-serif", "system-ui", "Inter", "-apple-system", "sans-serif"],
+        mono: ["ui-monospace", "JetBrains Mono", "Menlo", "monospace"],
       },
       backgroundImage: {
-        "hero-grid":
-          "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,92,255,0.25), transparent)",
+        "hero-glow":  "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,58,237,0.3), transparent)",
+        "hero-glow2": "radial-gradient(ellipse 50% 40% at 80% 60%, rgba(34,211,238,0.08), transparent)",
       },
     },
   },
