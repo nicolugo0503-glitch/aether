@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { postToFacebook, postToInstagram } from "@/lib/social";
+import { postToFacebook, postToInstagram, postToTwitter } from "@/lib/social";
 import OpenAI from "openai";
 
 // Called daily by Vercel Cron at 9am UTC
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       OR: [
         { fbPageId: { not: null } },
         { igUserId: { not: null } },
+        { twitterApiKey: { not: null } },
       ],
     },
   });
@@ -28,6 +29,10 @@ export async function GET(req: NextRequest) {
     if (!user.fbPageToken) continue;
 
     try {
+      const hasMeta = !!user.fbPageToken;
+      const hasX = !!(user.twitterApiKey && user.twitterApiSecret && user.twitterAccessToken && user.twitterAccessSecret);
+      if (!hasMeta && !hasX) continue;
+
       // Generate a post about Aether / AI productivity
       const topics = [
         "how AI is transforming business operations",
@@ -51,35 +56,48 @@ export async function GET(req: NextRequest) {
       const content = JSON.parse(completion.choices[0].message.content || "{}");
       const fullCaption = `${content.caption}\n\n${content.hashtags}`;
 
+      const cronPlatforms = [
+        ...(user.fbPageId ? ["facebook"] : []),
+        ...(user.igUserId ? ["instagram"] : []),
+        ...(hasX ? ["x"] : []),
+      ];
+
       const post = await prisma.socialPost.create({
         data: {
           userId: user.id,
           topic,
           caption: content.caption || "",
           hashtags: content.hashtags || "",
-          platforms: JSON.stringify(["facebook", "instagram"]),
+          platforms: JSON.stringify(cronPlatforms),
           status: "posting",
         },
       });
 
-      let fbId, igId;
-      const errors = [];
+      let fbId, igId, xId;
+      const errors: string[] = [];
 
-      if (user.fbPageId) {
+      if (user.fbPageId && user.fbPageToken) {
         try { fbId = await postToFacebook(user.fbPageId, user.fbPageToken, fullCaption); }
         catch (e: any) { errors.push(`FB: ${e.message}`); }
       }
-      if (user.igUserId) {
+      if (user.igUserId && user.fbPageToken) {
         try { igId = await postToInstagram(user.igUserId, user.fbPageToken, fullCaption); }
         catch (e: any) { errors.push(`IG: ${e.message}`); }
+      }
+      if (hasX) {
+        try {
+          const tweet = fullCaption.length > 280 ? fullCaption.slice(0, 277) + "..." : fullCaption;
+          xId = await postToTwitter(user.twitterApiKey!, user.twitterApiSecret!, user.twitterAccessToken!, user.twitterAccessSecret!, tweet);
+        } catch (e: any) { errors.push(`X: ${e.message}`); }
       }
 
       await prisma.socialPost.update({
         where: { id: post.id },
         data: {
           status: errors.length === 0 ? "posted" : "partial",
-          fbPostId: fbId || null,
-          igPostId: igId || null,
+          fbPostId: fbId ?? null,
+          igPostId: igId ?? null,
+          xPostId: xId ?? null,
           postedAt: new Date(),
           error: errors.length > 0 ? errors.join("; ") : null,
         },

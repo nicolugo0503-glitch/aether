@@ -36,10 +36,16 @@ model User {
   serperApiKey  String?
   fromEmail     String?
 
-  // Social media
+  // Social media — Meta (Facebook + Instagram)
   fbPageToken   String?
   fbPageId      String?
   igUserId      String?
+
+  // Social media — X / Twitter
+  twitterApiKey       String?
+  twitterApiSecret    String?
+  twitterAccessToken  String?
+  twitterAccessSecret String?
 
   agents      Agent[]
   runs        Run[]
@@ -58,6 +64,7 @@ model SocialPost {
   status      String   @default("draft")
   fbPostId    String?
   igPostId    String?
+  xPostId     String?
   scheduledAt DateTime?
   postedAt    DateTime?
   error       String?
