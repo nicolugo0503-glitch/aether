@@ -9,14 +9,16 @@ import {
   CreditCard,
   Settings,
   LogOut,
+  Megaphone,
 } from "lucide-react";
 
 const nav = [
-  { href: "/dashboard",          label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/agents",   label: "AI Employees", icon: Bot },
-  { href: "/dashboard/runs",     label: "Runs", icon: ListChecks },
-  { href: "/dashboard/billing",  label: "Billing", icon: CreditCard },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard",            label: "Overview",      icon: LayoutDashboard },
+  { href: "/dashboard/agents",     label: "AI Employees",  icon: Bot },
+  { href: "/dashboard/campaigns",  label: "Campaigns",     icon: Megaphone },
+  { href: "/dashboard/runs",       label: "Runs",          icon: ListChecks },
+  { href: "/dashboard/billing",    label: "Billing",       icon: CreditCard },
+  { href: "/dashboard/settings",   label: "Settings",      icon: Settings },
 ];
 
 export default async function DashboardLayout({

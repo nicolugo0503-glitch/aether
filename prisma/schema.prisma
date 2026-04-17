@@ -31,8 +31,28 @@ model User {
   planRenewsAt         DateTime?
   runsUsedThisPeriod   Int       @default(0)
 
-  agents Agent[]
-  runs   Run[]
+  // Integration keys (stored per-user)
+  resendApiKey  String?
+  serperApiKey  String?
+  fromEmail     String?
+
+  agents    Agent[]
+  runs      Run[]
+  campaigns Campaign[]
+}
+
+model Campaign {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId   String
+  name      String
+  sheetUrl  String
+  status    String   @default("idle")
+  results   String   @default("[]")
+  schedule  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Agent {

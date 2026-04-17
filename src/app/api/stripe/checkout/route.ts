@@ -17,8 +17,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure a Stripe customer
+    // Ensure a valid Stripe customer
     let customerId = user.stripeCustomerId;
+    if (customerId) {
+      // Verify the customer still exists in Stripe (handles key changes / account switches)
+      try {
+        await stripe.customers.retrieve(customerId);
+      } catch {
+        // Customer not found — clear it and create a fresh one
+        customerId = null;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { stripeCustomerId: null },
+        });
+      }
+    }
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,

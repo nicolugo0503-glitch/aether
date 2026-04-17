@@ -13,6 +13,21 @@ async function updateProfile(formData: FormData) {
   redirect("/dashboard/settings?saved=1");
 }
 
+async function updateIntegrations(formData: FormData) {
+  "use server";
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      resendApiKey: String(formData.get("resendApiKey") || "").trim() || null,
+      fromEmail:    String(formData.get("fromEmail") || "").trim() || null,
+      serperApiKey: String(formData.get("serperApiKey") || "").trim() || null,
+    },
+  });
+  redirect("/dashboard/settings?saved=1");
+}
+
 export default async function SettingsPage({
   searchParams,
 }: { searchParams: Promise<{ saved?: string }> }) {
@@ -25,7 +40,7 @@ export default async function SettingsPage({
 
       {saved && (
         <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
-          Saved.
+          Saved successfully.
         </div>
       )}
 
@@ -45,9 +60,52 @@ export default async function SettingsPage({
       </div>
 
       <div className="card">
+        <h2 className="font-semibold">Email Sending</h2>
+        <p className="text-sm text-muted mt-1">
+          Used by Campaigns to send AI-generated emails. Get a free API key at{" "}
+          <a href="https://resend.com" target="_blank" className="text-accent-2 underline">resend.com</a>.
+        </p>
+        <form action={updateIntegrations} className="mt-4 space-y-4">
+          <div>
+            <label className="label">Resend API Key</label>
+            <input
+              className="input mt-1"
+              name="resendApiKey"
+              type="password"
+              placeholder="re_..."
+              defaultValue={user.resendApiKey ?? ""}
+            />
+          </div>
+          <div>
+            <label className="label">From Email</label>
+            <input
+              className="input mt-1"
+              name="fromEmail"
+              type="email"
+              placeholder="ava@yourdomain.com"
+              defaultValue={user.fromEmail ?? ""}
+            />
+            <p className="text-xs text-muted mt-1">Must be a verified domain in Resend.</p>
+          </div>
+          <div>
+            <label className="label">Serper API Key (Web Search — optional)</label>
+            <input
+              className="input mt-1"
+              name="serperApiKey"
+              type="password"
+              placeholder="Get free key at serper.dev"
+              defaultValue={user.serperApiKey ?? ""}
+            />
+            <p className="text-xs text-muted mt-1">If set, agents will research leads on Google before writing emails.</p>
+          </div>
+          <button className="btn-secondary">Save Integrations</button>
+        </form>
+      </div>
+
+      <div className="card">
         <h2 className="font-semibold">Workspace</h2>
         <p className="mt-1 text-sm text-muted">
-          You're on plan <span className="text-white">{user.plan}</span>.
+          You&apos;re on plan <span className="text-white">{user.plan}</span>.
         </p>
       </div>
     </div>
