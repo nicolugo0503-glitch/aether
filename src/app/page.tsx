@@ -6,6 +6,7 @@ import { BentoGrid } from "@/components/landing/bento";
 import { PlatformsSection } from "@/components/landing/platforms";
 import { CustomCursor } from "@/components/landing/cursor";
 import { AgentsShowcase } from "@/components/landing/agents";
+import { AetherMark } from "@/components/ui/logo";
 
 export default function HomePage() {
   return (
@@ -15,12 +16,9 @@ export default function HomePage() {
       {/* ── NAV ─────────────────────────────────────── */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-4 md:px-12"
         style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="relative h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 20px rgba(124,58,237,0.5)" }}>
-            <span className="text-white font-black text-base">A</span>
-          </div>
-          <span className="font-bold text-white text-lg tracking-tight">Aether</span>
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
+          <AetherMark size={32} glow />
+          <span className="font-black text-white text-lg tracking-tight">Aether</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm">
@@ -256,10 +254,9 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-5 gap-10 mb-16">
             <div className="md:col-span-2">
-              <Link href="/" className="flex items-center gap-2.5 mb-4">
-                <div className="h-9 w-9 rounded-xl flex items-center justify-center font-black text-white"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 20px rgba(124,58,237,0.4)" }}>A</div>
-                <span className="font-bold text-white text-lg">Aether</span>
+              <Link href="/" className="flex items-center gap-2.5 mb-4 hover:opacity-80 transition-opacity">
+                <AetherMark size={32} glow={false} />
+                <span className="font-black text-white text-lg tracking-tight">Aether</span>
               </Link>
               <p className="text-zinc-600 text-sm leading-relaxed max-w-xs">
                 The AI workforce platform for ambitious teams. Instagram, Facebook, X, and Email — all on autopilot.

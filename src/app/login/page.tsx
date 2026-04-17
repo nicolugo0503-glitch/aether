@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { ArrowRight, Shield } from "lucide-react";
+import { AetherMark } from "@/components/ui/logo";
 
 async function login(formData: FormData) {
   "use server";
@@ -23,84 +24,114 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-black flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16">
-        <div className="orb w-[500px] h-[500px] bg-violet-700/25 top-[-100px] left-[-100px] animate-pulse-glow" />
-        <div className="orb w-[300px] h-[300px] bg-cyan-600/10 bottom-[-50px] right-[-50px]" />
-        <div className="relative z-10 max-w-sm">
-          <Link href="/" className="flex items-center gap-2.5 mb-16">
-            <div className="h-9 w-9 rounded-xl bg-violet-600 flex items-center justify-center glow-purple-sm">
-              <span className="text-white font-bold">A</span>
-            </div>
-            <span className="font-semibold text-white text-lg">Aether</span>
-          </Link>
-          <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
-            Your AI workforce<br />is waiting for you.
-          </h2>
-          <p className="text-zinc-400 text-base leading-relaxed mb-12">
-            Sign back in and let your agents continue working — emails, social posts, research, all running automatically.
-          </p>
-          <div className="space-y-4">
-            {["Ava sent 47 cold emails this morning","Social post published to Instagram","Rex completed 3 research reports"].map((msg, i) => (
-              <div key={i} className="flex items-center gap-3 glass rounded-xl px-4 py-3">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-glow shrink-0" />
-                <span className="text-zinc-300 text-sm">{msg}</span>
+    <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+
+      {/* Cinematic background */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Large purple orb — top left */}
+        <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
+          style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.35) 0%, transparent 70%)", filter: "blur(80px)", animation: "pulse-glow 6s ease-in-out infinite" }} />
+        {/* Cyan orb — bottom right */}
+        <div className="absolute -bottom-40 -right-20 w-[500px] h-[500px] rounded-full"
+          style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.2) 0%, transparent 70%)", filter: "blur(80px)", animation: "float 10s ease-in-out infinite" }} />
+        {/* Subtle mid orb */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full"
+          style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.08) 0%, transparent 70%)", filter: "blur(60px)" }} />
+        {/* Grid */}
+        <div className="absolute inset-0 opacity-[0.02]"
+          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "50px 50px" }} />
+      </div>
+
+      {/* Login card */}
+      <div className="relative z-10 w-full max-w-md mx-auto px-6">
+        <div className="rounded-3xl p-8 md:p-10"
+          style={{
+            background: "rgba(8,8,12,0.88)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            backdropFilter: "blur(32px)",
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.02), 0 40px 80px rgba(0,0,0,0.7), 0 0 80px rgba(124,58,237,0.08)",
+          }}>
+
+          {/* Logo + back link */}
+          <div className="flex items-center justify-between mb-10">
+            <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+              <AetherMark size={36} glow />
+              <span className="font-black text-white text-xl tracking-tight">Aether</span>
+            </Link>
+            <Link href="/" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">← Home</Link>
+          </div>
+
+          {/* Headline */}
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">Welcome back.</h1>
+            <p className="text-zinc-500">Your agents kept working. Sign in to review.</p>
+          </div>
+
+          {/* Live activity — subtle */}
+          <div className="rounded-2xl p-3 mb-8 space-y-2"
+            style={{ background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.12)" }}>
+            {[
+              { msg: "Ava sent 47 cold emails this morning", time: "2h ago" },
+              { msg: "Social post published to Instagram + X", time: "4h ago" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  {item.msg}
+                </div>
+                <span className="text-xs text-zinc-700 shrink-0 ml-2">{item.time}</span>
               </div>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-16 relative">
-        <div className="orb w-[400px] h-[400px] bg-violet-600/10 top-0 right-0" />
-        <div className="relative z-10 w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <div className="h-8 w-8 rounded-lg bg-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
-            </div>
-            <span className="font-semibold text-white">Aether</span>
-          </div>
-
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
-            <p className="text-zinc-400">Sign in to your workspace</p>
-          </div>
-
+          {/* Error */}
           {error && (
-            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error === "invalid" ? "Invalid email or password. Please try again." : "Please fill in all fields."}
+            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/08 px-4 py-3 text-sm text-red-300">
+              {error === "invalid" ? "Invalid email or password — try again." : "Please fill in all fields."}
             </div>
           )}
 
+          {/* Form */}
           <form action={login} className="space-y-4">
             <div>
               <label className="label mb-2 block">Email address</label>
-              <input className="input" type="email" name="email" required
-                autoComplete="email" placeholder="you@company.com" />
+              <input
+                className="input focus:border-violet-500/60"
+                type="email" name="email" required
+                autoComplete="email" placeholder="you@company.com"
+              />
             </div>
             <div>
               <label className="label mb-2 block">Password</label>
-              <input className="input" type="password" name="password" required
-                autoComplete="current-password" placeholder="••••••••" />
+              <input
+                className="input focus:border-violet-500/60"
+                type="password" name="password" required
+                autoComplete="current-password" placeholder="••••••••"
+              />
             </div>
-            <button className="btn-primary w-full py-3.5 text-base rounded-xl glow-purple-sm mt-2 btn-shine group">
+
+            <button
+              type="submit"
+              className="w-full inline-flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-base btn-shine group mt-2"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                boxShadow: "0 0 40px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.1)",
+              }}>
               Sign in to Aether
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-zinc-500">
+          <p className="mt-6 text-center text-sm text-zinc-600">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-violet-400 hover:text-violet-300 transition-colors font-medium">
-              Create one free →
+            <Link href="/signup" className="text-violet-400 hover:text-violet-300 transition-colors font-semibold">
+              Start free →
             </Link>
           </p>
 
-          <div className="mt-10 flex items-center justify-center gap-2 text-zinc-700 text-xs">
+          <div className="mt-8 pt-6 border-t border-white/[0.04] flex items-center justify-center gap-2 text-zinc-700 text-xs">
             <Shield className="h-3.5 w-3.5" />
-            <span>Secured with 256-bit encryption</span>
+            256-bit encryption · SOC 2 · No credit card needed
           </div>
         </div>
       </div>
