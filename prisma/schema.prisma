@@ -36,9 +36,32 @@ model User {
   serperApiKey  String?
   fromEmail     String?
 
-  agents    Agent[]
-  runs      Run[]
-  campaigns Campaign[]
+  // Social media
+  fbPageToken   String?
+  fbPageId      String?
+  igUserId      String?
+
+  agents      Agent[]
+  runs        Run[]
+  campaigns   Campaign[]
+  socialPosts SocialPost[]
+}
+
+model SocialPost {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic       String
+  caption     String
+  hashtags    String
+  platforms   String   @default("[]")
+  status      String   @default("draft")
+  fbPostId    String?
+  igPostId    String?
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
 }
 
 model Campaign {

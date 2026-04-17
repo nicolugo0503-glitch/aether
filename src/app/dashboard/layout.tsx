@@ -10,12 +10,14 @@ import {
   Settings,
   LogOut,
   Megaphone,
+  Share2,
 } from "lucide-react";
 
 const nav = [
   { href: "/dashboard",            label: "Overview",      icon: LayoutDashboard },
   { href: "/dashboard/agents",     label: "AI Employees",  icon: Bot },
   { href: "/dashboard/campaigns",  label: "Campaigns",     icon: Megaphone },
+  { href: "/dashboard/social",     label: "Social Media",  icon: Share2 },
   { href: "/dashboard/runs",       label: "Runs",          icon: ListChecks },
   { href: "/dashboard/billing",    label: "Billing",       icon: CreditCard },
   { href: "/dashboard/settings",   label: "Settings",      icon: Settings },

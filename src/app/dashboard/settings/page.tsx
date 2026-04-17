@@ -28,6 +28,21 @@ async function updateIntegrations(formData: FormData) {
   redirect("/dashboard/settings?saved=1");
 }
 
+async function updateSocial(formData: FormData) {
+  "use server";
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      fbPageToken: String(formData.get("fbPageToken") || "").trim() || null,
+      fbPageId:    String(formData.get("fbPageId") || "").trim() || null,
+      igUserId:    String(formData.get("igUserId") || "").trim() || null,
+    },
+  });
+  redirect("/dashboard/settings?saved=1");
+}
+
 export default async function SettingsPage({
   searchParams,
 }: { searchParams: Promise<{ saved?: string }> }) {
@@ -99,6 +114,34 @@ export default async function SettingsPage({
             <p className="text-xs text-muted mt-1">If set, agents will research leads on Google before writing emails.</p>
           </div>
           <button className="btn-secondary">Save Integrations</button>
+        </form>
+      </div>
+
+      <div className="card">
+        <h2 className="font-semibold">Social Media</h2>
+        <p className="text-sm text-muted mt-1">
+          Connect Facebook + Instagram to enable automatic posting.{" "}
+          <a href="https://developers.facebook.com/docs/pages/access-tokens" target="_blank" className="text-accent-2 underline">
+            How to get tokens →
+          </a>
+        </p>
+        <form action={updateSocial} className="mt-4 space-y-4">
+          <div>
+            <label className="label">Facebook Page Access Token</label>
+            <input className="input mt-1" name="fbPageToken" type="password"
+              placeholder="EAA..." defaultValue={user.fbPageToken ?? ""} />
+          </div>
+          <div>
+            <label className="label">Facebook Page ID</label>
+            <input className="input mt-1" name="fbPageId" placeholder="123456789"
+              defaultValue={user.fbPageId ?? ""} />
+          </div>
+          <div>
+            <label className="label">Instagram Business Account ID</label>
+            <input className="input mt-1" name="igUserId" placeholder="17841400000000000"
+              defaultValue={user.igUserId ?? ""} />
+          </div>
+          <button className="btn-secondary">Save Social Accounts</button>
         </form>
       </div>
 
