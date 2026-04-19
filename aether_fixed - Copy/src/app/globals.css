@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ─── Root ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+  --green:  #00e87a;
+  --blue:   #00b4ff;
+  --red:    #ff2d55;
+  --gold:   #ffcc00;
+}
+
+html, body {
+  background: #030304;
+  color: #f2f2f4;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Selection ──────────────────────────────────────────────────────── */
+::selection { background: rgba(0,232,122,0.25); color: #fff; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 5px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: #2a2a2f; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: #00e87a40; }
+
+/* ─── Components ─────────────────────────────────────────────────────── */
+@layer components {
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-transparent
+           px-5 py-2.5 text-sm font-semibold transition-all duration-200 ease-spring
+           focus:outline-none focus:ring-2 focus:ring-accent/40 focus:ring-offset-2 focus:ring-offset-bg
+           disabled:opacity-40 disabled:cursor-not-allowed select-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-bg shadow-button hover:shadow-button-hover hover:bg-accent/90
+           hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-primary-lg {
+    @apply btn-primary px-8 py-3.5 text-base rounded-2xl;
+  }
+
+  .btn-secondary {
+    @apply btn border-border bg-panel text-text hover:bg-elevated hover:border-border-bright
+           shadow-card active:scale-[0.98];
+  }
+
+  .btn-secondary-lg {
+    @apply btn-secondary px-8 py-3.5 text-base rounded-2xl;
+  }
+
+  .btn-ghost {
+    @apply btn text-muted hover:text-text hover:bg-elevated;
+  }
+
+  .btn-outline {
+    @apply btn border-border-bright text-text bg-transparent
+           hover:border-accent/50 hover:text-accent active:scale-[0.98];
+  }
+
+  .btn-outline-lg {
+    @apply btn-outline px-8 py-3.5 text-base rounded-2xl;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full rounded-xl border border-border bg-elevated px-4 py-3 text-sm text-text
+           placeholder:text-muted-2 font-mono
+           focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/15
+           transition-all duration-200;
+  }
+
+  /* Cards */
+  .card {
+    @apply rounded-2xl border border-border bg-panel p-6 shadow-card transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply card hover:border-accent/20 hover:shadow-card-hover hover:-translate-y-0.5 cursor-pointer;
+  }
+
+  .card-terminal {
+    @apply rounded-2xl border border-accent/20 bg-panel shadow-terminal;
+  }
+
+  /* Typography */
+  .label {
+    @apply text-xs font-mono font-medium uppercase tracking-widest text-muted;
+  }
+
+  .link {
+    @apply text-accent hover:text-accent/80 underline underline-offset-2 transition-colors;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-transparent;
+  }
+
+  /* Eyebrow */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5
+           px-4 py-1.5 font-mono text-xs font-medium uppercase tracking-widest text-accent;
+  }
+
+  /* Divider */
+  .divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+
+  /* Pills */
+  .pill        { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-mono font-medium; }
+  .pill-success { @apply pill bg-accent/10 text-accent border-accent/20; }
+  .pill-error   { @apply pill bg-danger/10 text-red-400 border-danger/20; }
+  .pill-warning { @apply pill bg-warning/10 text-yellow-400 border-warning/20; }
+  .pill-neutral { @apply pill bg-panel text-muted border-border; }
+
+  /* Sidebar */
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted
+           hover:text-text hover:bg-elevated transition-all duration-150;
+  }
+
+  /* Data table */
+  .data-table              { @apply w-full text-sm; }
+  .data-table thead tr     { @apply border-b border-border; }
+  .data-table thead th     { @apply py-3 px-4 text-left text-xs font-mono font-medium uppercase tracking-widest text-muted; }
+  .data-table tbody tr     { @apply border-b border-border/40 hover:bg-elevated/40 transition-colors; }
+  .data-table tbody td     { @apply py-3.5 px-4; }
+
+  /* Code */
+  .code-block {
+    @apply rounded-xl border border-border bg-bg font-mono text-xs text-muted p-4 overflow-x-auto;
+  }
+
+  /* Progress */
+  .progress-bar  { @apply h-1.5 rounded-full bg-elevated overflow-hidden; }
+  .progress-fill { @apply h-full rounded-full bg-accent transition-all duration-700; }
+
+  /* Cursor blink */
+  .cursor-blink {
+    @apply inline-block w-0.5 h-4 bg-accent align-middle;
+    animation: blink 1s step-end infinite;
+  }
+}
+
+/* ─── Grid bg ────────────────────────────────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,232,122,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,232,122,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ─── Gradient border ────────────────────────────────────────────────── */
+.green-border {
+  position: relative;
+}
+.green-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0,232,122,0.4), rgba(0,180,255,0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Green shimmer text ─────────────────────────────────────────────── */
+.text-shimmer {
+  background: linear-gradient(90deg, #00e87a 0%, #00b4ff 40%, #00e87a 80%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer { to { background-position: 200% center; } }
+
+/* ─── Keyframe animations ────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 0 20px rgba(0,232,122,0.15); }
+  50%       { box-shadow: 0 0 50px rgba(0,232,122,0.35), 0 0 100px rgba(0,232,122,0.1); }
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes typeLine {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+@keyframes logoSpin {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0,232,122,0.7)); }
+  50%       { filter: drop-shadow(0 0 16px rgba(0,180,255,0.6)); }
+}
+
+/* ─── Animation utility classes ──────────────────────────────────────── */
+.animate-fade-up     { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-fade-up-d1  { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.10s both; }
+.animate-fade-up-d2  { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.22s both; }
+.animate-fade-up-d3  { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.35s both; }
+.animate-fade-up-d4  { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.50s both; }
+.animate-fade-up-d5  { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.65s both; }
+.animate-fade-in     { animation: fadeIn 0.5s ease both; }
+.animate-float       { animation: float 5s ease-in-out infinite; }
+.animate-float-d     { animation: float 5s ease-in-out 2s infinite; }
+.animate-pulse-green { animation: pulseGreen 3s ease-in-out infinite; }
+.logo-glow           { animation: logoSpin 4s ease-in-out infinite; }
+
+.ticker-wrap  { overflow: hidden; }
+.ticker-inner { display: flex; width: max-content; animation: ticker 40s linear infinite; }
