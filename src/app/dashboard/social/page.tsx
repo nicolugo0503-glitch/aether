@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, Send, RefreshCw, Instagram, Facebook, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Send, RefreshCw, Instagram, Facebook, Image as ImageIcon, Clock, Calendar, ToggleLeft, ToggleRight, Check } from "lucide-react";
+
+const TIMEZONES = [
+  "UTC", "America/New_York", "America/Chicago", "America/Denver",
+  "America/Los_Angeles", "America/Sao_Paulo", "Europe/London",
+  "Europe/Paris", "Europe/Madrid", "Asia/Dubai", "Asia/Tokyo", "Australia/Sydney",
+];
 
 interface SocialPost {
   id: string; topic: string; caption: string; hashtags: string;
@@ -27,6 +33,12 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
+interface Schedule {
+  enabled: boolean; time: string; timezone: string;
+  frequency: string; topic: string;
+  platforms: string[]; nextRun?: string;
+}
+
 export default function SocialPage() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [topic, setTopic] = useState("");
@@ -37,7 +49,46 @@ export default function SocialPage() {
   const [preview, setPreview] = useState<SocialPost | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { loadPosts(); }, []);
+  // Schedule state
+  const [schedule, setSchedule] = useState<Schedule>({
+    enabled: false, time: "09:00", timezone: "UTC",
+    frequency: "daily", topic: "",
+    platforms: ["facebook", "instagram"],
+  });
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleSaved, setScheduleSaved] = useState(false);
+
+  useEffect(() => { loadPosts(); loadSchedule(); }, []);
+
+  async function loadSchedule() {
+    const r = await fetch("/api/social/schedule");
+    if (r.ok) {
+      const d = await r.json();
+      setSchedule(d);
+    }
+  }
+
+  async function saveSchedule() {
+    setScheduleSaving(true);
+    await fetch("/api/social/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(schedule),
+    });
+    setScheduleSaving(false);
+    setScheduleSaved(true);
+    setTimeout(() => setScheduleSaved(false), 2500);
+    loadSchedule();
+  }
+
+  function toggleSchedulePlatform(p: string) {
+    setSchedule(s => ({
+      ...s,
+      platforms: s.platforms.includes(p)
+        ? s.platforms.filter(x => x !== p)
+        : [...s.platforms, p],
+    }));
+  }
 
   async function loadPosts() {
     const r = await fetch("/api/social");
@@ -267,24 +318,116 @@ export default function SocialPage() {
       </div>
 
       {/* Auto-schedule */}
-      <div className="card" style={{ borderColor: "rgba(124,58,237,0.2)" }}>
-        <h2 className="font-semibold mb-1">Auto-Schedule</h2>
-        <p className="text-sm text-zinc-500">
-          Connect your social accounts in <strong className="text-white">Settings</strong> and Aether will
-          auto-generate a post + image and publish every day at 9 AM across all connected platforms.
-        </p>
-        <div className="mt-3 flex gap-3 flex-wrap">
-          {[
-            { label: "Instagram", color: "#e1306c" },
-            { label: "Facebook", color: "#1877f2" },
-            { label: "X (Twitter)", color: "#e7e9ea" },
-          ].map(p => (
-            <div key={p.label} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
-              style={{ background: `${p.color}10`, color: p.color, border: `1px solid ${p.color}25` }}>
-              {p.label}
-            </div>
-          ))}
+      <div className="card space-y-5" style={{ borderColor: schedule.enabled ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.06)" }}>
+        {/* Header + toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-violet-400" /> Auto-Schedule
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Aether generates a fresh post + image and publishes automatically</p>
+          </div>
+          <button onClick={() => setSchedule(s => ({ ...s, enabled: !s.enabled }))}
+            className="flex items-center gap-2 text-sm font-semibold transition-colors"
+            style={{ color: schedule.enabled ? "#a78bfa" : "#52525b" }}>
+            {schedule.enabled
+              ? <ToggleRight className="h-7 w-7 text-violet-400" />
+              : <ToggleLeft className="h-7 w-7 text-zinc-600" />}
+            {schedule.enabled ? "On" : "Off"}
+          </button>
         </div>
+
+        {schedule.enabled && (
+          <div className="space-y-4">
+            {/* Time + Timezone */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Post at</label>
+                <input type="time" className="input mt-1" value={schedule.time}
+                  onChange={e => setSchedule(s => ({ ...s, time: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Timezone</label>
+                <select className="input mt-1" value={schedule.timezone}
+                  onChange={e => setSchedule(s => ({ ...s, timezone: e.target.value }))}>
+                  {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Frequency */}
+            <div>
+              <label className="label">Frequency</label>
+              <div className="flex gap-2 mt-1.5 flex-wrap">
+                {[
+                  { value: "daily",      label: "Every day" },
+                  { value: "every2days", label: "Every 2 days" },
+                  { value: "weekly",     label: "Once a week" },
+                ].map(f => (
+                  <button key={f.value}
+                    onClick={() => setSchedule(s => ({ ...s, frequency: f.value }))}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={schedule.frequency === f.value ? {
+                      background: "rgba(124,58,237,0.2)", border: "1px solid rgba(124,58,237,0.4)", color: "#a78bfa"
+                    } : {
+                      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "#52525b"
+                    }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Topic */}
+            <div>
+              <label className="label">Topic <span className="text-zinc-600 font-normal">(leave blank for AI to pick randomly)</span></label>
+              <input className="input mt-1" placeholder="e.g. AI automation for small businesses"
+                value={schedule.topic}
+                onChange={e => setSchedule(s => ({ ...s, topic: e.target.value }))} />
+            </div>
+
+            {/* Platforms */}
+            <div>
+              <label className="label">Platforms</label>
+              <div className="flex gap-3 mt-1.5 flex-wrap">
+                {[
+                  { key: "facebook",  label: "Facebook",   color: "#1877f2" },
+                  { key: "instagram", label: "Instagram",  color: "#e1306c" },
+                  { key: "x",        label: "X (Twitter)", color: "#e7e9ea" },
+                ].map(p => (
+                  <button key={p.key} onClick={() => toggleSchedulePlatform(p.key)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={schedule.platforms.includes(p.key) ? {
+                      background: `${p.color}18`, border: `1px solid ${p.color}40`, color: p.color,
+                    } : {
+                      background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", color: "#52525b",
+                    }}>
+                    {schedule.platforms.includes(p.key) && <Check className="h-3 w-3" />}
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Next run */}
+            {schedule.nextRun && (
+              <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <Calendar className="h-3.5 w-3.5" />
+                Next post: <span className="text-zinc-300">{new Date(schedule.nextRun).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Save button */}
+        <button onClick={saveSchedule} disabled={scheduleSaving}
+          className="btn-primary flex items-center gap-2 text-sm">
+          {scheduleSaved
+            ? <><Check className="h-4 w-4" /> Saved!</>
+            : scheduleSaving
+            ? <><RefreshCw className="h-4 w-4 animate-spin" /> Saving...</>
+            : "Save Schedule"}
+        </button>
       </div>
     </div>
   );
