@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import OpenAI from "openai";
 
 export async function POST(req: NextRequest) {
@@ -34,9 +35,12 @@ Keep caption under 200 words. Make it feel authentic, not like an ad.`;
 
     const result = JSON.parse(completion.choices[0].message.content || "{}");
 
-    // Step 2 — Generate image with DALL-E 3
+    // Step 2 — Generate image with DALL-E 3 (paid plans only)
+    const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
     let imageUrl: string | null = null;
-    try {
+    if (!planLimits.images) {
+      // Free plan — skip image generation
+    } else try {
       const dallePrompt = result.imagePrompt
         ? `${result.imagePrompt}. No text, no words, no letters anywhere in the image.`
         : `High quality professional image representing: ${topic}. No text, clean composition, vibrant.`;
