@@ -55,6 +55,8 @@ model User {
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
 
+  ayrshareProfileKey String?
+
   // Social auto-schedule
   scheduleEnabled    Boolean   @default(false)
   scheduleTime       String    @default("09:00")   // "HH:MM" in user's chosen timezone

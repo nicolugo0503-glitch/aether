@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
-import { postToFacebook, postToInstagram, postToX } from "@/lib/social";
+import { postToSocial } from "@/lib/social";
 import OpenAI from "openai";
 
 const RANDOM_TOPICS = [
@@ -15,32 +15,31 @@ const RANDOM_TOPICS = [
 ];
 
 export async function GET(req: NextRequest) {
-  // Verify this is called by Vercel cron
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
-
   const dueUsers = await prisma.user.findMany({
-    where: {
-      scheduleEnabled: true,
-      scheduleNextRun: { lte: now },
-    },
+    where: { scheduleEnabled: true, scheduleNextRun: { lte: now } },
   });
 
   const results = [];
 
   for (const user of dueUsers) {
     try {
+      if (!user.ayrshareProfileKey) {
+        results.push({ userId: user.id, error: "No social accounts connected" });
+        continue;
+      }
+
       const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
       const platforms: string[] = JSON.parse(user.schedulePlatforms || '["facebook","instagram"]');
       const topic = user.scheduleTopic || RANDOM_TOPICS[Math.floor(Math.random() * RANDOM_TOPICS.length)];
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-      // Generate caption + hashtags + image prompt
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.8,
@@ -59,7 +58,6 @@ Return ONLY JSON:
 
       const result = JSON.parse(completion.choices[0].message.content || "{}");
 
-      // Generate image (paid plans only)
       let imageUrl: string | null = null;
       if (planLimits.images) {
         try {
@@ -74,7 +72,6 @@ Return ONLY JSON:
         } catch { /* skip on failure */ }
       }
 
-      // Save post
       const post = await prisma.socialPost.create({
         data: {
           userId: user.id,
@@ -87,46 +84,26 @@ Return ONLY JSON:
         },
       });
 
-      // Post to connected platforms
-      let fbPostId = null, igPostId = null, xPostId = null, postError = null;
       const fullCaption = `${result.caption}\n\n${result.hashtags}`;
+      const postResult = await postToSocial(user.ayrshareProfileKey, fullCaption, platforms, imageUrl);
 
-      if (platforms.includes("facebook") && user.fbPageId && user.fbPageToken) {
-        try { fbPostId = await postToFacebook(user.fbPageId, user.fbPageToken, fullCaption, imageUrl ?? undefined); }
-        catch (e: any) { postError = e.message; }
-      }
-      if (platforms.includes("instagram") && user.igUserId && user.fbPageToken) {
-        try { igPostId = await postToInstagram(user.igUserId, user.fbPageToken, fullCaption, imageUrl ?? undefined); }
-        catch (e: any) { postError = e.message; }
-      }
-      if (platforms.includes("x") && user.twitterApiKey && user.twitterApiSecret && user.twitterAccessToken && user.twitterAccessSecret) {
-        try {
-          xPostId = await postToX(
-            { apiKey: user.twitterApiKey, apiSecret: user.twitterApiSecret, accessToken: user.twitterAccessToken, accessSecret: user.twitterAccessSecret },
-            fullCaption
-          );
-        } catch (e: any) { postError = e.message; }
-      }
+      const postIds = postResult.postIds ?? {};
+      const posted = Object.keys(postIds).length > 0;
+      const postError = postResult.errors ? Object.values(postResult.errors).join("; ") : null;
 
-      const posted = !!(fbPostId || igPostId || xPostId);
       await prisma.socialPost.update({
         where: { id: post.id },
         data: {
-          fbPostId, igPostId, xPostId,
           status: posted ? "posted" : postError ? "error" : "draft",
           error: postError,
           postedAt: posted ? new Date() : null,
         },
       });
 
-      // Schedule next run
       const daysToAdd = user.scheduleFrequency === "daily" ? 1 : user.scheduleFrequency === "every2days" ? 2 : 7;
       const nextRun = new Date(now);
       nextRun.setDate(nextRun.getDate() + daysToAdd);
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { scheduleNextRun: nextRun },
-      });
+      await prisma.user.update({ where: { id: user.id }, data: { scheduleNextRun: nextRun } });
 
       results.push({ userId: user.id, topic, posted });
     } catch (err: any) {

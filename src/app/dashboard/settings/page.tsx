@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, destroySession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { DeleteAccountButton } from "./delete-account-button";
+import { ConnectSocialButton } from "./connect-social-button";
 
 async function updateProfile(formData: FormData) {
   "use server";
@@ -38,20 +39,7 @@ async function deleteAccount() {
   redirect("/");
 }
 
-async function updateSocial(formData: FormData) {
-  "use server";
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      fbPageToken: String(formData.get("fbPageToken") || "").trim() || null,
-      fbPageId:    String(formData.get("fbPageId") || "").trim() || null,
-      igUserId:    String(formData.get("igUserId") || "").trim() || null,
-    },
-  });
-  redirect("/dashboard/settings?saved=1");
-}
+
 
 export default async function SettingsPage({
   searchParams,
@@ -127,92 +115,14 @@ export default async function SettingsPage({
         </form>
       </div>
 
-      <div className="card space-y-5">
+      <div className="card space-y-4">
         <div>
           <h2 className="font-semibold">Social Media</h2>
-          <p className="text-sm text-muted mt-1">Connect Facebook + Instagram to enable automatic posting.</p>
+          <p className="text-sm text-muted mt-1">
+            Connect Facebook, Instagram, and X in one click. No tokens needed.
+          </p>
         </div>
-
-        {/* ── Step-by-step guide ── */}
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3 text-sm">
-          <p className="font-semibold text-white text-xs uppercase tracking-widest text-zinc-500">How to get your credentials — 10 min setup</p>
-
-          {[
-            {
-              n: "1",
-              title: "Switch Instagram to a Business account",
-              body: "In the Instagram app → Settings → Account → Switch to Professional Account → choose Business. Skip if already done.",
-            },
-            {
-              n: "2",
-              title: "Link Instagram to your Facebook Page",
-              body: "In Facebook → Settings → Linked Accounts → Instagram. Log in and connect. Both accounts must be linked for posting to work.",
-            },
-            {
-              n: "3",
-              title: "Open the Graph API Explorer",
-              body: null,
-              link: { href: "https://developers.facebook.com/tools/explorer/", label: "developers.facebook.com/tools/explorer →" },
-            },
-            {
-              n: "4",
-              title: "Generate an Access Token",
-              body: 'In the Explorer, click "Generate Access Token". Log in when prompted. Check these permissions: pages_manage_posts, pages_read_engagement, instagram_basic, instagram_content_publish.',
-            },
-            {
-              n: "5",
-              title: "Get your Facebook Page ID",
-              body: 'In the Explorer query box type: me/accounts — then click Submit. Find your Page in the results and copy its "id". Paste it below.',
-            },
-            {
-              n: "6",
-              title: "Get your Instagram Business Account ID",
-              body: 'In the Explorer query box type: YOUR_PAGE_ID?fields=instagram_business_account — replace YOUR_PAGE_ID with the number from step 5. Copy the "id" inside instagram_business_account.',
-            },
-            {
-              n: "7",
-              title: "Extend your token to 60 days (recommended)",
-              body: 'In the Explorer, click the blue "i" icon next to your token → Open in Access Token Tool → Extend Access Token. Copy the new long-lived token and paste it below.',
-            },
-          ].map((s) => (
-            <div key={s.n} className="flex gap-3">
-              <div className="h-6 w-6 rounded-lg flex items-center justify-center text-xs font-black text-white shrink-0 mt-0.5"
-                style={{ background: "linear-gradient(135deg,#7c3aed,#6d28d9)" }}>
-                {s.n}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm">{s.title}</p>
-                {s.body && <p className="text-zinc-500 text-xs mt-0.5 leading-relaxed">{s.body}</p>}
-                {s.link && (
-                  <a href={s.link.href} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-violet-400 hover:text-violet-300 transition-colors mt-0.5 inline-block">
-                    {s.link.label}
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Inputs ── */}
-        <form action={updateSocial} className="space-y-4">
-          <div>
-            <label className="label">Facebook Page Access Token</label>
-            <input className="input mt-1" name="fbPageToken" type="password"
-              placeholder="EAA..." defaultValue={user.fbPageToken ?? ""} />
-          </div>
-          <div>
-            <label className="label">Facebook Page ID</label>
-            <input className="input mt-1" name="fbPageId" placeholder="123456789"
-              defaultValue={user.fbPageId ?? ""} />
-          </div>
-          <div>
-            <label className="label">Instagram Business Account ID</label>
-            <input className="input mt-1" name="igUserId" placeholder="17841400000000000"
-              defaultValue={user.igUserId ?? ""} />
-          </div>
-          <button className="btn-secondary">Save Social Accounts</button>
-        </form>
+        <ConnectSocialButton connected={!!user.ayrshareProfileKey} />
       </div>
 
       <div className="card">
