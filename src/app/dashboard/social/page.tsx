@@ -49,7 +49,6 @@ export default function SocialPage() {
   const [preview, setPreview] = useState<SocialPost | null>(null);
   const [error, setError] = useState("");
 
-  // Schedule state
   const [schedule, setSchedule] = useState<Schedule>({
     enabled: false, time: "09:00", timezone: "UTC",
     frequency: "daily", topic: "",
@@ -152,7 +151,6 @@ export default function SocialPage() {
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">{error}</div>
       )}
 
-      {/* Generate panel */}
       <div className="card space-y-5">
         <h2 className="font-semibold flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-violet-400" /> Generate Post + Image
@@ -214,12 +212,11 @@ export default function SocialPage() {
         {generating && (
           <div className="text-xs text-zinc-600 flex items-center gap-2">
             <ImageIcon className="h-3 w-3" />
-            Writing caption and generating a custom image with DALL·E 3 — takes ~10 seconds
+            Generating caption and image with DALL-E 3, takes about 10 seconds
           </div>
         )}
       </div>
 
-      {/* Preview */}
       {preview && (
         <div className="card space-y-4" style={{ borderColor: "rgba(124,58,237,0.4)" }}>
           <div className="flex items-center justify-between">
@@ -238,7 +235,6 @@ export default function SocialPage() {
             </div>
           </div>
 
-          {/* Generated image */}
           {preview.imageUrl && (
             <div className="rounded-2xl overflow-hidden aspect-square w-full max-w-sm mx-auto"
               style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -249,7 +245,7 @@ export default function SocialPage() {
             <div className="rounded-2xl flex items-center justify-center h-40 w-full"
               style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.08)" }}>
               <p className="text-xs text-zinc-600 flex items-center gap-2">
-                <ImageIcon className="h-4 w-4" /> Image generation unavailable — post will be text only
+                <ImageIcon className="h-4 w-4" /> Image generation unavailable - post will be text only
               </p>
             </div>
           )}
@@ -271,7 +267,6 @@ export default function SocialPage() {
         </div>
       )}
 
-      {/* Post history */}
       <div className="card">
         <h2 className="font-semibold mb-4">Post History</h2>
         {posts.length === 0 ? (
@@ -283,7 +278,6 @@ export default function SocialPage() {
               return (
                 <div key={p.id} className="rounded-xl p-4 flex gap-4"
                   style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  {/* Thumbnail */}
                   {p.imageUrl && (
                     <img src={p.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                       style={{ border: "1px solid rgba(255,255,255,0.07)" }} />
@@ -317,9 +311,7 @@ export default function SocialPage() {
         )}
       </div>
 
-      {/* Auto-schedule */}
       <div className="card space-y-5" style={{ borderColor: schedule.enabled ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.06)" }}>
-        {/* Header + toggle */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-semibold flex items-center gap-2">
@@ -339,7 +331,6 @@ export default function SocialPage() {
 
         {schedule.enabled && (
           <div className="space-y-4">
-            {/* Time + Timezone */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Post at</label>
@@ -355,7 +346,6 @@ export default function SocialPage() {
               </div>
             </div>
 
-            {/* Frequency */}
             <div>
               <label className="label">Frequency</label>
               <div className="flex gap-2 mt-1.5 flex-wrap">
@@ -378,7 +368,6 @@ export default function SocialPage() {
               </div>
             </div>
 
-            {/* Topic */}
             <div>
               <label className="label">Topic <span className="text-zinc-600 font-normal">(leave blank for AI to pick randomly)</span></label>
               <input className="input mt-1" placeholder="e.g. AI automation for small businesses"
@@ -386,19 +375,18 @@ export default function SocialPage() {
                 onChange={e => setSchedule(s => ({ ...s, topic: e.target.value }))} />
             </div>
 
-            {/* Platforms */}
             <div>
               <label className="label">Platforms</label>
               <div className="flex gap-3 mt-1.5 flex-wrap">
                 {[
-                  { key: "facebook",  label: "Facebook",   color: "#1877f2" },
-                  { key: "instagram", label: "Instagram",  color: "#e1306c" },
-                  { key: "x",        label: "X (Twitter)", color: "#e7e9ea" },
+                  { key: "facebook",  label: "Facebook",    color: "#1877f2" },
+                  { key: "instagram", label: "Instagram",   color: "#e1306c" },
+                  { key: "x",         label: "X (Twitter)", color: "#e7e9ea" },
                 ].map(p => (
                   <button key={p.key} onClick={() => toggleSchedulePlatform(p.key)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
                     style={schedule.platforms.includes(p.key) ? {
-                      background: `${p.color}18`, border: `1px solid ${p.color}40`, color: p.color,
+                      background: p.color + "18", border: "1px solid " + p.color + "40", color: p.color,
                     } : {
                       background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", color: "#52525b",
                     }}>
@@ -409,7 +397,6 @@ export default function SocialPage() {
               </div>
             </div>
 
-            {/* Next run */}
             {schedule.nextRun && (
               <div className="flex items-center gap-2 text-xs text-zinc-500">
                 <Calendar className="h-3.5 w-3.5" />
@@ -419,7 +406,6 @@ export default function SocialPage() {
           </div>
         )}
 
-        {/* Save button */}
         <button onClick={saveSchedule} disabled={scheduleSaving}
           className="btn-primary flex items-center gap-2 text-sm">
           {scheduleSaved
