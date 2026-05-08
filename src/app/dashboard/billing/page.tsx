@@ -1,17 +1,48 @@
 import { getCurrentUser } from "@/lib/auth";
-import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
+import { PLAN_LIMITS, toPlanKey, stripe, priceIdToPlan } from "@/lib/stripe";
+import { prisma } from "@/lib/db";
+import { redirect } from "next/navigation";
 
 const tiers = [
-  { key: "STARTER", name: "Starter", price: "$49" },
-  { key: "GROWTH",  name: "Growth",  price: "$299" },
-  { key: "SCALE",   name: "Scale",   price: "$1,499" },
+  { key: "STARTER", name: "Starter", price: "$49"  },
+  { key: "GROWTH",  name: "Growth",  price: "$149" },
+  { key: "SCALE",   name: "Scale",   price: "$499" },
 ] as const;
 
 export default async function BillingPage({
   searchParams,
-}: { searchParams: Promise<{ error?: string; success?: string }> }) {
+}: { searchParams: Promise<{ error?: string; success?: string; session_id?: string }> }) {
   const user = (await getCurrentUser())!;
-  const { error, success } = await searchParams;
+  const { error, success, session_id } = await searchParams;
+
+  // ── Immediately confirm plan upgrade when returning from Stripe ──
+  if (success && session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id, {
+        expand: ["subscription"],
+      });
+      if (session.payment_status === "paid" && session.metadata?.userId === user.id) {
+        const sub = session.subscription as import("stripe").Stripe.Subscription;
+        const priceId = sub?.items?.data[0]?.price?.id;
+        const newPlan = priceIdToPlan(priceId);
+        if (newPlan !== "FREE") {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              plan: newPlan,
+              stripeSubscriptionId: sub.id,
+              planRenewsAt: new Date(sub.current_period_end * 1000),
+              runsUsedThisPeriod: 0,
+            },
+          });
+          // Redirect to force a full fresh reload so sidebar + layout all update
+          redirect("/dashboard/billing?success=1");
+        }
+      }
+    } catch (e) {
+      console.error("[billing] session confirm error", e);
+    }
+  }
   const limits = PLAN_LIMITS[toPlanKey(user.plan)];
 
   return (

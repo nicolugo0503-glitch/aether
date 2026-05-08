@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { runAgent } from "@/lib/ai";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import { centsToUSD, formatDate } from "@/lib/utils";
-import { StatusPill } from "../../page";
+import { StatusPill } from "@/components/dashboard/status-pill";
 
 async function updateAgent(formData: FormData) {
   "use server";

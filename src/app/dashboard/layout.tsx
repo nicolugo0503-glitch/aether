@@ -6,9 +6,11 @@ import {
   Settings, LogOut, Megaphone, Share2,
 } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
+import { MobileTabBar } from "@/components/dashboard/mobile-tab-bar";
+import { NavLink } from "@/components/dashboard/nav-link";
 
 const NAV = [
-  { href: "/dashboard",           label: "Overview",     icon: LayoutDashboard },
+  { href: "/dashboard",           label: "Overview",     icon: LayoutDashboard, exact: true },
   { href: "/dashboard/agents",    label: "AI Employees", icon: Bot },
   { href: "/dashboard/campaigns", label: "Campaigns",    icon: Megaphone },
   { href: "/dashboard/social",    label: "Social Media", icon: Share2 },
@@ -60,12 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {NAV.map((item) => (
-            <Link key={item.href} href={item.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-500 hover:text-white hover:bg-white/[0.04] transition-all duration-150 group relative">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-violet-500 opacity-0 group-hover:opacity-70 transition-opacity" />
-              <item.icon className="h-4 w-4 shrink-0 group-hover:text-violet-400 transition-colors" />
-              <span className="group-hover:translate-x-0.5 transition-transform">{item.label}</span>
-            </Link>
+            <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} exact={item.exact} />
           ))}
         </nav>
 
@@ -106,10 +103,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* ── MAIN ─────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 relative">
         <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.25), transparent)" }} />
-        <div className="px-6 py-8 md:px-10 md:py-10">
+
+        {/* Mobile top header */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3.5 border-b border-white/[0.05]"
+          style={{ background: "rgba(4,4,8,0.98)", backdropFilter: "blur(20px)" }}>
+          <Link href="/" className="flex items-center gap-2">
+            <AetherMark size={26} glow />
+            <span className="font-black text-white tracking-tight">Aether</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center text-xs font-black text-white"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
+              {initials}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 py-6 md:px-10 md:py-10 pb-24 md:pb-10">
           {children}
         </div>
       </main>
+
+      {/* Mobile bottom nav */}
+      <MobileTabBar />
     </div>
   );
 }

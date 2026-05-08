@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, Send, RefreshCw, Instagram, Facebook } from "lucide-react";
+import { Sparkles, Send, RefreshCw, Instagram, Facebook, Image as ImageIcon, Clock, Calendar, ToggleLeft, ToggleRight, Check } from "lucide-react";
+
+const TIMEZONES = [
+  "UTC", "America/New_York", "America/Chicago", "America/Denver",
+  "America/Los_Angeles", "America/Sao_Paulo", "Europe/London",
+  "Europe/Paris", "Europe/Madrid", "Asia/Dubai", "Asia/Tokyo", "Australia/Sydney",
+];
 
 interface SocialPost {
   id: string; topic: string; caption: string; hashtags: string;
-  platforms: string; status: string;
+  platforms: string; status: string; imageUrl?: string;
   fbPostId?: string; igPostId?: string; xPostId?: string;
   error?: string; postedAt?: string; createdAt: string;
 }
@@ -19,13 +25,18 @@ const TOPIC_IDEAS = [
   "How Aether helps you scale without hiring",
 ];
 
-// X (Twitter) icon
 function XIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
     </svg>
   );
+}
+
+interface Schedule {
+  enabled: boolean; time: string; timezone: string;
+  frequency: string; topic: string;
+  platforms: string[]; nextRun?: string;
 }
 
 export default function SocialPage() {
@@ -38,7 +49,46 @@ export default function SocialPage() {
   const [preview, setPreview] = useState<SocialPost | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { loadPosts(); }, []);
+  // Schedule state
+  const [schedule, setSchedule] = useState<Schedule>({
+    enabled: false, time: "09:00", timezone: "UTC",
+    frequency: "daily", topic: "",
+    platforms: ["facebook", "instagram"],
+  });
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleSaved, setScheduleSaved] = useState(false);
+
+  useEffect(() => { loadPosts(); loadSchedule(); }, []);
+
+  async function loadSchedule() {
+    const r = await fetch("/api/social/schedule");
+    if (r.ok) {
+      const d = await r.json();
+      setSchedule(d);
+    }
+  }
+
+  async function saveSchedule() {
+    setScheduleSaving(true);
+    await fetch("/api/social/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(schedule),
+    });
+    setScheduleSaving(false);
+    setScheduleSaved(true);
+    setTimeout(() => setScheduleSaved(false), 2500);
+    loadSchedule();
+  }
+
+  function toggleSchedulePlatform(p: string) {
+    setSchedule(s => ({
+      ...s,
+      platforms: s.platforms.includes(p)
+        ? s.platforms.filter(x => x !== p)
+        : [...s.platforms, p],
+    }));
+  }
 
   async function loadPosts() {
     const r = await fetch("/api/social");
@@ -82,10 +132,8 @@ export default function SocialPage() {
     s === "partial" ? "text-yellow-400" : "text-zinc-500";
 
   const getPlatformBadges = (platformsJson: string) => {
-    try {
-      const arr: string[] = JSON.parse(platformsJson);
-      return arr;
-    } catch { return []; }
+    try { return JSON.parse(platformsJson) as string[]; }
+    catch { return []; }
   };
 
   return (
@@ -93,7 +141,7 @@ export default function SocialPage() {
       <div>
         <h1 className="text-2xl font-semibold">Social Media</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          AI generates and posts to{" "}
+          AI generates captions <span className="text-violet-400 font-medium">+ images</span> and posts to{" "}
           <span className="text-pink-400">Instagram</span>,{" "}
           <span className="text-blue-400">Facebook</span>, and{" "}
           <span className="text-zinc-300">X (Twitter)</span> automatically
@@ -107,7 +155,7 @@ export default function SocialPage() {
       {/* Generate panel */}
       <div className="card space-y-5">
         <h2 className="font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-violet-400" /> Generate Post
+          <Sparkles className="h-4 w-4 text-violet-400" /> Generate Post + Image
         </h2>
 
         <div>
@@ -152,7 +200,6 @@ export default function SocialPage() {
                   onChange={e => setPlatforms({ ...platforms, x: e.target.checked })} />
                 <XIcon className="h-4 w-4 text-zinc-300" />
                 <span className="text-zinc-300">X (Twitter)</span>
-                <span className="text-xs text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-full px-2 py-0.5">NEW</span>
               </label>
             </div>
           </div>
@@ -160,9 +207,16 @@ export default function SocialPage() {
 
         <button className="btn-primary flex items-center gap-2" onClick={generatePost} disabled={generating}>
           {generating
-            ? <><RefreshCw className="h-4 w-4 animate-spin" /> Generating...</>
+            ? <><RefreshCw className="h-4 w-4 animate-spin" /> Generating caption + image...</>
             : <><Sparkles className="h-4 w-4" /> Generate Post</>}
         </button>
+
+        {generating && (
+          <div className="text-xs text-zinc-600 flex items-center gap-2">
+            <ImageIcon className="h-3 w-3" />
+            Writing caption and generating a custom image with DALL·E 3 — takes ~10 seconds
+          </div>
+        )}
       </div>
 
       {/* Preview */}
@@ -183,15 +237,28 @@ export default function SocialPage() {
               ))}
             </div>
           </div>
+
+          {/* Generated image */}
+          {preview.imageUrl && (
+            <div className="rounded-2xl overflow-hidden aspect-square w-full max-w-sm mx-auto"
+              style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+              <img src={preview.imageUrl} alt="AI generated" className="w-full h-full object-cover" />
+            </div>
+          )}
+          {!preview.imageUrl && (
+            <div className="rounded-2xl flex items-center justify-center h-40 w-full"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.08)" }}>
+              <p className="text-xs text-zinc-600 flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" /> Image generation unavailable — post will be text only
+              </p>
+            </div>
+          )}
+
           <div className="rounded-xl p-4 space-y-2" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <p className="text-sm text-zinc-200">{preview.caption}</p>
             <p className="text-sm text-violet-400">{preview.hashtags}</p>
           </div>
-          {platforms.x && (
-            <div className="text-xs text-zinc-500 bg-zinc-900/50 rounded-lg px-3 py-2">
-              ⚡ X/Twitter will truncate to 280 characters automatically if needed.
-            </div>
-          )}
+
           <div className="flex gap-2">
             <button className="btn-primary flex items-center gap-2" onClick={() => publishPost(preview.id)}
               disabled={postingId === preview.id}>
@@ -214,29 +281,35 @@ export default function SocialPage() {
             {posts.map(p => {
               const badges = getPlatformBadges(p.platforms);
               return (
-                <div key={p.id} className="rounded-xl p-4 space-y-2"
+                <div key={p.id} className="rounded-xl p-4 flex gap-4"
                   style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-600">{new Date(p.createdAt).toLocaleDateString()}</span>
-                      {badges.map(b => (
-                        <span key={b} className="text-xs text-zinc-700 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">
-                          {b === "x" ? "X" : b === "instagram" ? "IG" : "FB"}
-                        </span>
-                      ))}
-                    </div>
-                    <span className={`text-xs font-medium ${statusColor(p.status)}`}>{p.status}</span>
-                  </div>
-                  <p className="text-sm text-zinc-300">{p.caption}</p>
-                  <p className="text-xs text-violet-400">{p.hashtags}</p>
-                  {p.xPostId && <p className="text-xs text-zinc-600">X tweet ID: {p.xPostId}</p>}
-                  {p.error && <p className="text-xs text-red-400">{p.error}</p>}
-                  {p.status === "draft" && (
-                    <button className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1 mt-1"
-                      onClick={() => publishPost(p.id)} disabled={postingId === p.id}>
-                      {postingId === p.id ? "Posting..." : <><Send className="h-3 w-3" /> Post Now</>}
-                    </button>
+                  {/* Thumbnail */}
+                  {p.imageUrl && (
+                    <img src={p.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                      style={{ border: "1px solid rgba(255,255,255,0.07)" }} />
                   )}
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-zinc-600">{new Date(p.createdAt).toLocaleDateString()}</span>
+                        {badges.map(b => (
+                          <span key={b} className="text-xs text-zinc-700 bg-white/[0.03] border border-white/[0.05] rounded-full px-2 py-0.5">
+                            {b === "x" ? "X" : b === "instagram" ? "IG" : "FB"}
+                          </span>
+                        ))}
+                      </div>
+                      <span className={`text-xs font-medium shrink-0 ${statusColor(p.status)}`}>{p.status}</span>
+                    </div>
+                    <p className="text-sm text-zinc-300 truncate">{p.caption}</p>
+                    <p className="text-xs text-violet-400 truncate">{p.hashtags}</p>
+                    {p.error && <p className="text-xs text-red-400">{p.error}</p>}
+                    {p.status === "draft" && (
+                      <button className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1 mt-1"
+                        onClick={() => publishPost(p.id)} disabled={postingId === p.id}>
+                        {postingId === p.id ? "Posting..." : <><Send className="h-3 w-3" /> Post Now</>}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -245,25 +318,116 @@ export default function SocialPage() {
       </div>
 
       {/* Auto-schedule */}
-      <div className="card" style={{ borderColor: "rgba(124,58,237,0.2)" }}>
-        <h2 className="font-semibold mb-1">Auto-Schedule</h2>
-        <p className="text-sm text-zinc-500">
-          Connect your social accounts in <strong className="text-white">Settings</strong> and Aether will
-          auto-post every day at 9 AM across all connected platforms — no clicks needed.
-        </p>
-        <div className="mt-3 flex gap-3 flex-wrap">
-          {[
-            { label: "Instagram", color: "#e1306c" },
-            { label: "Facebook", color: "#1877f2" },
-            { label: "X (Twitter)", color: "#e7e9ea", isNew: true },
-          ].map(p => (
-            <div key={p.label} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
-              style={{ background: `${p.color}10`, color: p.color, border: `1px solid ${p.color}25` }}>
-              {p.label}
-              {p.isNew && <span className="text-violet-400 font-bold ml-1">NEW</span>}
-            </div>
-          ))}
+      <div className="card space-y-5" style={{ borderColor: schedule.enabled ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.06)" }}>
+        {/* Header + toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-violet-400" /> Auto-Schedule
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Aether generates a fresh post + image and publishes automatically</p>
+          </div>
+          <button onClick={() => setSchedule(s => ({ ...s, enabled: !s.enabled }))}
+            className="flex items-center gap-2 text-sm font-semibold transition-colors"
+            style={{ color: schedule.enabled ? "#a78bfa" : "#52525b" }}>
+            {schedule.enabled
+              ? <ToggleRight className="h-7 w-7 text-violet-400" />
+              : <ToggleLeft className="h-7 w-7 text-zinc-600" />}
+            {schedule.enabled ? "On" : "Off"}
+          </button>
         </div>
+
+        {schedule.enabled && (
+          <div className="space-y-4">
+            {/* Time + Timezone */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Post at</label>
+                <input type="time" className="input mt-1" value={schedule.time}
+                  onChange={e => setSchedule(s => ({ ...s, time: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Timezone</label>
+                <select className="input mt-1" value={schedule.timezone}
+                  onChange={e => setSchedule(s => ({ ...s, timezone: e.target.value }))}>
+                  {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Frequency */}
+            <div>
+              <label className="label">Frequency</label>
+              <div className="flex gap-2 mt-1.5 flex-wrap">
+                {[
+                  { value: "daily",      label: "Every day" },
+                  { value: "every2days", label: "Every 2 days" },
+                  { value: "weekly",     label: "Once a week" },
+                ].map(f => (
+                  <button key={f.value}
+                    onClick={() => setSchedule(s => ({ ...s, frequency: f.value }))}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                    style={schedule.frequency === f.value ? {
+                      background: "rgba(124,58,237,0.2)", border: "1px solid rgba(124,58,237,0.4)", color: "#a78bfa"
+                    } : {
+                      background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "#52525b"
+                    }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Topic */}
+            <div>
+              <label className="label">Topic <span className="text-zinc-600 font-normal">(leave blank for AI to pick randomly)</span></label>
+              <input className="input mt-1" placeholder="e.g. AI automation for small businesses"
+                value={schedule.topic}
+                onChange={e => setSchedule(s => ({ ...s, topic: e.target.value }))} />
+            </div>
+
+            {/* Platforms */}
+            <div>
+              <label className="label">Platforms</label>
+              <div className="flex gap-3 mt-1.5 flex-wrap">
+                {[
+                  { key: "facebook",  label: "Facebook",   color: "#1877f2" },
+                  { key: "instagram", label: "Instagram",  color: "#e1306c" },
+                  { key: "x",        label: "X (Twitter)", color: "#e7e9ea" },
+                ].map(p => (
+                  <button key={p.key} onClick={() => toggleSchedulePlatform(p.key)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+                    style={schedule.platforms.includes(p.key) ? {
+                      background: `${p.color}18`, border: `1px solid ${p.color}40`, color: p.color,
+                    } : {
+                      background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", color: "#52525b",
+                    }}>
+                    {schedule.platforms.includes(p.key) && <Check className="h-3 w-3" />}
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Next run */}
+            {schedule.nextRun && (
+              <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <Calendar className="h-3.5 w-3.5" />
+                Next post: <span className="text-zinc-300">{new Date(schedule.nextRun).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Save button */}
+        <button onClick={saveSchedule} disabled={scheduleSaving}
+          className="btn-primary flex items-center gap-2 text-sm">
+          {scheduleSaved
+            ? <><Check className="h-4 w-4" /> Saved!</>
+            : scheduleSaving
+            ? <><RefreshCw className="h-4 w-4 animate-spin" /> Saving...</>
+            : "Save Schedule"}
+        </button>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { centsToUSD, formatDate } from "@/lib/utils";
-import { StatusPill } from "../page";
+import { StatusPill } from "@/components/dashboard/status-pill";
 
 export default async function RunsPage() {
   const user = (await getCurrentUser())!;
