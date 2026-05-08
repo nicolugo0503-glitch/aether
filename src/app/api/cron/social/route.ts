@@ -1,113 +1,138 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { postToFacebook, postToInstagram, postToTwitter } from "@/lib/social";
+import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
+import { postToFacebook, postToInstagram, postToX } from "@/lib/social";
 import OpenAI from "openai";
 
-// Called daily by Vercel Cron at 9am UTC
-// Generates + posts for all users who have social accounts connected + auto-post enabled
+const RANDOM_TOPICS = [
+  "How AI is changing the way businesses hire",
+  "5 ways automation saves you 10+ hours a week",
+  "Why the future of work is AI-powered",
+  "How to scale your business without hiring more staff",
+  "The secret to growing on social media in 2025",
+  "What smart entrepreneurs do differently",
+  "How to turn your expertise into automated income",
+];
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verify this is called by Vercel cron
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const users = await prisma.user.findMany({
+  const now = new Date();
+
+  const dueUsers = await prisma.user.findMany({
     where: {
-      OR: [
-        { fbPageId: { not: null } },
-        { igUserId: { not: null } },
-        { twitterApiKey: { not: null } },
-      ],
+      scheduleEnabled: true,
+      scheduleNextRun: { lte: now },
     },
   });
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const results = [];
 
-  for (const user of users) {
-    if (!user.fbPageToken) continue;
-
+  for (const user of dueUsers) {
     try {
-      const hasMeta = !!user.fbPageToken;
-      const hasX = !!(user.twitterApiKey && user.twitterApiSecret && user.twitterAccessToken && user.twitterAccessSecret);
-      if (!hasMeta && !hasX) continue;
+      const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
+      const platforms: string[] = JSON.parse(user.schedulePlatforms || '["facebook","instagram"]');
+      const topic = user.scheduleTopic || RANDOM_TOPICS[Math.floor(Math.random() * RANDOM_TOPICS.length)];
 
-      // Generate a post about Aether / AI productivity
-      const topics = [
-        "how AI is transforming business operations",
-        "why automation saves 10+ hours per week",
-        "the future of AI employees in small business",
-        "how to grow your business with AI tools",
-        "productivity tips using AI automation",
-      ];
-      const topic = topics[Math.floor(Math.random() * topics.length)];
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+      // Generate caption + hashtags + image prompt
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.8,
         messages: [{
           role: "user",
-          content: `Write an engaging social media post about: "${topic}". Return JSON with "caption" and "hashtags" fields.`,
+          content: `You are a social media expert. Create an engaging professional post about: "${topic}"
+Return ONLY JSON:
+{
+  "caption": "2-4 sentences, no hashtags",
+  "hashtags": "#tag1 #tag2 #tag3 #tag4 #tag5",
+  "imagePrompt": "vivid DALL-E prompt, max 120 chars, no text in image"
+}`,
         }],
         response_format: { type: "json_object" },
       });
 
-      const content = JSON.parse(completion.choices[0].message.content || "{}");
-      const fullCaption = `${content.caption}\n\n${content.hashtags}`;
+      const result = JSON.parse(completion.choices[0].message.content || "{}");
 
-      const cronPlatforms = [
-        ...(user.fbPageId ? ["facebook"] : []),
-        ...(user.igUserId ? ["instagram"] : []),
-        ...(hasX ? ["x"] : []),
-      ];
+      // Generate image (paid plans only)
+      let imageUrl: string | null = null;
+      if (planLimits.images) {
+        try {
+          const imgRes = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: `${result.imagePrompt}. No text, no words, no letters anywhere in the image.`,
+            size: "1024x1024",
+            quality: "standard",
+            n: 1,
+          });
+          imageUrl = imgRes.data[0]?.url ?? null;
+        } catch { /* skip on failure */ }
+      }
 
+      // Save post
       const post = await prisma.socialPost.create({
         data: {
           userId: user.id,
           topic,
-          caption: content.caption || "",
-          hashtags: content.hashtags || "",
-          platforms: JSON.stringify(cronPlatforms),
-          status: "posting",
+          caption: result.caption || "",
+          hashtags: result.hashtags || "",
+          platforms: JSON.stringify(platforms),
+          imageUrl,
+          status: "draft",
         },
       });
 
-      let fbId, igId, xId;
-      const errors: string[] = [];
+      // Post to connected platforms
+      let fbPostId = null, igPostId = null, xPostId = null, postError = null;
+      const fullCaption = `${result.caption}\n\n${result.hashtags}`;
 
-      if (user.fbPageId && user.fbPageToken) {
-        try { fbId = await postToFacebook(user.fbPageId, user.fbPageToken, fullCaption); }
-        catch (e: any) { errors.push(`FB: ${e.message}`); }
+      if (platforms.includes("facebook") && user.fbPageId && user.fbPageToken) {
+        try { fbPostId = await postToFacebook(user.fbPageId, user.fbPageToken, fullCaption, imageUrl ?? undefined); }
+        catch (e: any) { postError = e.message; }
       }
-      if (user.igUserId && user.fbPageToken) {
-        try { igId = await postToInstagram(user.igUserId, user.fbPageToken, fullCaption); }
-        catch (e: any) { errors.push(`IG: ${e.message}`); }
+      if (platforms.includes("instagram") && user.igUserId && user.fbPageToken) {
+        try { igPostId = await postToInstagram(user.igUserId, user.fbPageToken, fullCaption, imageUrl ?? undefined); }
+        catch (e: any) { postError = e.message; }
       }
-      if (hasX) {
+      if (platforms.includes("x") && user.twitterApiKey && user.twitterApiSecret && user.twitterAccessToken && user.twitterAccessSecret) {
         try {
-          const tweet = fullCaption.length > 280 ? fullCaption.slice(0, 277) + "..." : fullCaption;
-          xId = await postToTwitter(user.twitterApiKey!, user.twitterApiSecret!, user.twitterAccessToken!, user.twitterAccessSecret!, tweet);
-        } catch (e: any) { errors.push(`X: ${e.message}`); }
+          xPostId = await postToX(
+            { apiKey: user.twitterApiKey, apiSecret: user.twitterApiSecret, accessToken: user.twitterAccessToken, accessSecret: user.twitterAccessSecret },
+            fullCaption
+          );
+        } catch (e: any) { postError = e.message; }
       }
 
+      const posted = !!(fbPostId || igPostId || xPostId);
       await prisma.socialPost.update({
         where: { id: post.id },
         data: {
-          status: errors.length === 0 ? "posted" : "partial",
-          fbPostId: fbId ?? null,
-          igPostId: igId ?? null,
-          xPostId: xId ?? null,
-          postedAt: new Date(),
-          error: errors.length > 0 ? errors.join("; ") : null,
+          fbPostId, igPostId, xPostId,
+          status: posted ? "posted" : postError ? "error" : "draft",
+          error: postError,
+          postedAt: posted ? new Date() : null,
         },
       });
 
-      results.push({ userId: user.id, status: "ok" });
-    } catch (e: any) {
-      results.push({ userId: user.id, status: "error", error: e.message });
+      // Schedule next run
+      const daysToAdd = user.scheduleFrequency === "daily" ? 1 : user.scheduleFrequency === "every2days" ? 2 : 7;
+      const nextRun = new Date(now);
+      nextRun.setDate(nextRun.getDate() + daysToAdd);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { scheduleNextRun: nextRun },
+      });
+
+      results.push({ userId: user.id, topic, posted });
+    } catch (err: any) {
+      results.push({ userId: user.id, error: err.message });
     }
   }
 
-  return NextResponse.json({ ran: results.length, results });
+  return NextResponse.json({ processed: dueUsers.length, results });
 }

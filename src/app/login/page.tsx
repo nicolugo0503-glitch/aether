@@ -1,18 +1,32 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
+import { isRateLimited } from "@/lib/rate-limit";
 import { ArrowRight, Shield } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
 
 async function login(formData: FormData) {
   "use server";
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  // 10 attempts per 15 minutes per IP
+  if (isRateLimited(`login:${ip}`, 10)) {
+    return redirect("/login?error=ratelimit");
+  }
+
   const email = String(formData.get("email") || "").toLowerCase().trim();
   const password = String(formData.get("password") || "");
   if (!email || !password) return redirect("/login?error=missing");
+
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return redirect("/login?error=invalid");
+  }
+  if (!user.emailVerified) {
+    return redirect("/login?error=unverified");
   }
   await createSession(user.id);
   redirect("/dashboard");
@@ -23,21 +37,24 @@ export default async function LoginPage({
 }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
 
+  const errorMsg =
+    error === "invalid"    ? "Invalid email or password — try again." :
+    error === "missing"    ? "Please fill in all fields." :
+    error === "ratelimit"  ? "Too many attempts. Please wait 15 minutes and try again." :
+    error === "unverified" ? "Please verify your email before signing in. Check your inbox for the verification link." :
+    null;
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
 
       {/* Cinematic background */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Large purple orb — top left */}
         <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
           style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.35) 0%, transparent 70%)", filter: "blur(80px)", animation: "pulse-glow 6s ease-in-out infinite" }} />
-        {/* Cyan orb — bottom right */}
         <div className="absolute -bottom-40 -right-20 w-[500px] h-[500px] rounded-full"
           style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.2) 0%, transparent 70%)", filter: "blur(80px)", animation: "float 10s ease-in-out infinite" }} />
-        {/* Subtle mid orb */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full"
           style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.08) 0%, transparent 70%)", filter: "blur(60px)" }} />
-        {/* Grid */}
         <div className="absolute inset-0 opacity-[0.02]"
           style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "50px 50px" }} />
       </div>
@@ -67,7 +84,7 @@ export default async function LoginPage({
             <p className="text-zinc-500">Your agents kept working. Sign in to review.</p>
           </div>
 
-          {/* Live activity — subtle */}
+          {/* Live activity */}
           <div className="rounded-2xl p-3 mb-8 space-y-2"
             style={{ background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.12)" }}>
             {[
@@ -85,9 +102,9 @@ export default async function LoginPage({
           </div>
 
           {/* Error */}
-          {error && (
-            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/08 px-4 py-3 text-sm text-red-300">
-              {error === "invalid" ? "Invalid email or password — try again." : "Please fill in all fields."}
+          {errorMsg && (
+            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {errorMsg}
             </div>
           )}
 
@@ -102,7 +119,12 @@ export default async function LoginPage({
               />
             </div>
             <div>
-              <label className="label mb-2 block">Password</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label">Password</label>
+                <Link href="/forgot-password" className="text-xs text-zinc-600 hover:text-violet-400 transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 className="input focus:border-violet-500/60"
                 type="password" name="password" required

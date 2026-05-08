@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import OpenAI from "openai";
 
 export async function POST(req: NextRequest) {
@@ -13,12 +14,14 @@ export async function POST(req: NextRequest) {
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const prompt = `You are a social media expert. Create an engaging ${tone} social media post about: "${topic}"
+    // Step 1 — Generate caption + hashtags + image prompt
+    const textPrompt = `You are a social media expert. Create an engaging ${tone} social media post about: "${topic}"
 
 Return ONLY a JSON object with these fields:
 {
   "caption": "the post text (2-4 sentences, engaging, no hashtags here)",
-  "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5"
+  "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5",
+  "imagePrompt": "a vivid DALL-E image prompt that visually represents this post topic (max 120 chars, no text/words in image, photorealistic or clean graphic style)"
 }
 
 Keep caption under 200 words. Make it feel authentic, not like an ad.`;
@@ -26,11 +29,34 @@ Keep caption under 200 words. Make it feel authentic, not like an ad.`;
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.7,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: textPrompt }],
       response_format: { type: "json_object" },
     });
 
     const result = JSON.parse(completion.choices[0].message.content || "{}");
+
+    // Step 2 — Generate image with DALL-E 3 (paid plans only)
+    const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
+    let imageUrl: string | null = null;
+    if (!planLimits.images) {
+      // Free plan — skip image generation
+    } else try {
+      const dallePrompt = result.imagePrompt
+        ? `${result.imagePrompt}. No text, no words, no letters anywhere in the image.`
+        : `High quality professional image representing: ${topic}. No text, clean composition, vibrant.`;
+
+      const imageResponse = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: dallePrompt,
+        size: "1024x1024",
+        quality: "standard",
+        n: 1,
+      });
+
+      imageUrl = imageResponse.data[0]?.url ?? null;
+    } catch {
+      // Image generation failed — post continues without image
+    }
 
     const post = await prisma.socialPost.create({
       data: {
@@ -39,6 +65,7 @@ Keep caption under 200 words. Make it feel authentic, not like an ad.`;
         caption: result.caption || "",
         hashtags: result.hashtags || "",
         platforms: JSON.stringify(platforms),
+        imageUrl,
         status: "draft",
       },
     });

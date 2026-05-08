@@ -12,10 +12,10 @@ export const PRICE_IDS = {
 } as const;
 
 export const PLAN_LIMITS = {
-  FREE:    { monthlyRuns: 25,     agents: 1,   label: "Free"    },
-  STARTER: { monthlyRuns: 500,    agents: 3,   label: "Starter" },
-  GROWTH:  { monthlyRuns: 5_000,  agents: 10,  label: "Growth"  },
-  SCALE:   { monthlyRuns: 50_000, agents: 100, label: "Scale"   },
+  FREE:    { monthlyRuns: 10,     agents: 1,   label: "Free",    price: "$0",    images: false },
+  STARTER: { monthlyRuns: 500,    agents: 3,   label: "Starter", price: "$49",   images: true  },
+  GROWTH:  { monthlyRuns: 5_000,  agents: 10,  label: "Growth",  price: "$149",  images: true  },
+  SCALE:   { monthlyRuns: 50_000, agents: 100, label: "Scale",   price: "$499",  images: true  },
 } as const;
 
 export type PlanKey = keyof typeof PLAN_LIMITS;

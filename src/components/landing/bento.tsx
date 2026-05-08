@@ -28,27 +28,36 @@ function BentoCard({ children, className = "", glow = "" }: { children: React.Re
 
 function TypedOutput() {
   const lines = [
-    { text: "Subject: Quick question, Marcus", delay: 0 },
-    { text: "", delay: 200 },
-    { text: "Hi Marcus,", delay: 400 },
-    { text: "", delay: 600 },
-    { text: "I noticed Helix just raised Series B —", delay: 800 },
-    { text: "congrats. We help growth-stage", delay: 1000 },
-    { text: "teams like yours book 3x more demos", delay: 1200 },
-    { text: "with AI-written outreach.", delay: 1400 },
+    "Subject: Quick question, Marcus",
+    "",
+    "Hi Marcus,",
+    "",
+    "I noticed Helix just raised Series B —",
+    "congrats. We help growth-stage",
+    "teams like yours book 3x more demos",
+    "with AI-written outreach.",
   ];
   const [visible, setVisible] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => {
-      setVisible(v => v < lines.length ? v + 1 : 0);
+      setVisible(v => (v < lines.length ? v + 1 : 0));
     }, 600);
     return () => clearInterval(interval);
   }, []);
+
+  // Fixed height — never causes layout reflow
   return (
-    <div className="font-mono text-xs text-zinc-400 space-y-0.5 leading-relaxed">
-      {lines.slice(0, visible).map((l, i) => (
-        <div key={i} className={`transition-all duration-300 ${i === visible - 1 ? "opacity-100" : "opacity-70"}`}>
-          {l.text || "\u00A0"}
+    <div className="font-mono text-xs text-zinc-400 leading-relaxed overflow-hidden" style={{ height: 112 }}>
+      {lines.map((line, i) => (
+        <div
+          key={i}
+          style={{
+            opacity: i < visible ? (i === visible - 1 ? 1 : 0.6) : 0,
+            transition: "opacity 0.3s ease",
+            minHeight: "1.2em",
+          }}
+        >
+          {line || "\u00A0"}
         </div>
       ))}
       <span className="inline-block w-1.5 h-3.5 bg-violet-400 animate-pulse ml-0.5" />
@@ -67,29 +76,54 @@ function XIcon({ className }: { className?: string }) {
 
 function SocialPreview() {
   const [activeIdx, setActiveIdx] = useState(0);
+  const [imgPhase, setImgPhase] = useState<"generating"|"done">("generating");
   const platforms = [
-    { name: "Instagram", color: "#e1306c", label: "✓ Posted to Instagram", icon: "📸" },
-    { name: "Facebook", color: "#1877f2", label: "✓ Published to Facebook", icon: "🔵" },
-    { name: "X (Twitter)", color: "#e7e9ea", label: "✓ Thread posted on X", icon: "🐦" },
+    { name: "Instagram", color: "#e1306c", label: "✓ Posted to Instagram" },
+    { name: "Facebook", color: "#1877f2", label: "✓ Published to Facebook" },
+    { name: "X (Twitter)", color: "#e7e9ea", label: "✓ Thread posted on X" },
   ];
   useEffect(() => {
     const t = setInterval(() => setActiveIdx(i => (i + 1) % platforms.length), 2200);
     return () => clearInterval(t);
   }, []);
-  const active = platforms[activeIdx];
+  useEffect(() => {
+    const t = setInterval(() => setImgPhase(p => p === "generating" ? "done" : "generating"), 3000);
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <div className="space-y-3">
+      {/* AI Image generation indicator */}
+      <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs"
+        style={{ background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.2)" }}>
+        <span className="text-violet-400">✦</span>
+        <span className={`transition-all duration-500 ${imgPhase === "generating" ? "text-zinc-500" : "text-violet-300"}`}>
+          {imgPhase === "generating" ? "DALL·E 3 generating image..." : "Image generated ✓"}
+        </span>
+        {imgPhase === "generating" && (
+          <span className="ml-auto flex gap-0.5">
+            {[0,1,2].map(i => (
+              <span key={i} className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" style={{ animationDelay: `${i*150}ms` }} />
+            ))}
+          </span>
+        )}
+      </div>
       <div className="rounded-2xl overflow-hidden border border-white/[0.06]" style={{ background: "rgba(255,255,255,0.02)" }}>
-        <div className="h-28 flex items-center justify-center text-4xl"
+        <div className="h-28 flex items-center justify-center text-4xl relative overflow-hidden"
           style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(34,211,238,0.2))" }}>
-          🚀
+          <span className="text-4xl">🚀</span>
+          {imgPhase === "done" && (
+            <div className="absolute inset-0 flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.5), rgba(34,211,238,0.3))" }}>
+              <span className="text-xs text-white font-semibold bg-black/30 px-2 py-1 rounded-full">AI Image Ready</span>
+            </div>
+          )}
         </div>
         <div className="p-3">
           <p className="text-xs text-zinc-300 leading-relaxed">AI is transforming how teams work. Here&apos;s what we learned deploying 50 AI employees...</p>
           <p className="text-xs text-violet-400 mt-1">#AIWorkforce #Automation #Aether</p>
         </div>
       </div>
-      {/* Platform status indicators */}
       <div className="space-y-1.5">
         {platforms.map((p, i) => (
           <div key={p.name}
@@ -123,10 +157,10 @@ export function BentoGrid() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ contain: "layout" }}>
 
           {/* Email campaigns — wide */}
-          <BentoCard className="md:col-span-2 p-8" glow="rgba(124,58,237,0.12)">
+          <BentoCard className="md:col-span-2 p-6 md:p-8 overflow-hidden" glow="rgba(124,58,237,0.12)">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white"
                 style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 8px 24px rgba(124,58,237,0.4)" }}>
@@ -138,7 +172,7 @@ export function BentoGrid() {
               </div>
               <div className="ml-auto text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1">Live</div>
             </div>
-            <div className="rounded-2xl p-4 mb-4" style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="rounded-2xl p-4 mb-4 overflow-hidden" style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.05)", minHeight: 0 }}>
               <div className="text-xs text-zinc-600 mb-3 font-mono">AVA // GENERATING EMAIL FOR LEAD #47</div>
               <TypedOutput />
             </div>
@@ -161,7 +195,7 @@ export function BentoGrid() {
               </div>
               <div>
                 <div className="text-white font-bold text-sm">Social Autopilot</div>
-                <div className="text-xs text-zinc-500">Instagram · Facebook · X</div>
+                <div className="text-xs text-zinc-500">Caption + Image · Instagram · Facebook · X</div>
               </div>
             </div>
             <SocialPreview />
@@ -187,7 +221,7 @@ export function BentoGrid() {
           </BentoCard>
 
           {/* Full Automation Stack — wide */}
-          <BentoCard className="md:col-span-2 p-8" glow="rgba(234,179,8,0.08)">
+          <BentoCard className="md:col-span-2 p-6 md:p-8 overflow-hidden" glow="rgba(234,179,8,0.08)">
             <div className="flex items-start gap-6">
               <div>
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white mb-6"
@@ -203,6 +237,7 @@ export function BentoGrid() {
                     { icon: Share2, label: "Instagram + Facebook" },
                     { label: "X / Twitter posting", isX: true },
                     { icon: BarChart3, label: "Auto reporting" },
+                    { icon: Zap, label: "DALL·E 3 image gen" },
                   ].map(({ icon: Icon, label, isX }) => (
                     <div key={label} className="flex items-center gap-2 text-sm text-zinc-300">
                       {isX ? (
@@ -222,7 +257,7 @@ export function BentoGrid() {
                   {[
                     { label: "Google Sheets", color: "#10b981", icon: "📊" },
                     { label: "AI Research Lead", color: "#7c3aed", icon: "🔍" },
-                    { label: "Generate Content", color: "#7c3aed", icon: "✍️" },
+                    { label: "Write Caption + Generate Image", color: "#7c3aed", icon: "🎨" },
                     { label: "Post to Instagram / Facebook / X", color: "#e1306c", icon: "📱" },
                     { label: "Send via Email + Log", color: "#f59e0b", icon: "✅" },
                   ].map((step, i) => (

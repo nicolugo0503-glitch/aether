@@ -168,12 +168,18 @@ export function HeroSection() {
   const [deleting, setDeleting] = useState(false);
   const [count, setCount] = useState({ teams: 0, emails: 0, saves: 0 });
 
-  // Canvas particle system
+  // Canvas particle system — pauses when not visible
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Skip canvas on touch/mobile devices for performance
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    if (isTouch) return;
+
     const ctx = canvas.getContext("2d")!;
     let animId: number;
+    let visible = true;
     let w = canvas.width = window.innerWidth;
     let h = canvas.height = window.innerHeight;
     const colors = ["rgba(124,58,237,", "rgba(167,139,250,", "rgba(34,211,238,", "rgba(99,102,241,"];
@@ -187,6 +193,7 @@ export function HeroSection() {
       });
     }
     const draw = () => {
+      if (!visible) { animId = requestAnimationFrame(draw); return; }
       ctx.clearRect(0, 0, w, h);
       const mx = mouseRef.current.x, my = mouseRef.current.y;
       for (let i = 0; i < particles.length; i++) {
@@ -215,10 +222,27 @@ export function HeroSection() {
       });
       animId = requestAnimationFrame(draw);
     };
+
+    // Pause when tab is hidden
+    const onVisibility = () => { visible = document.visibilityState === "visible"; };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Pause when canvas is scrolled out of view
+    const observer = new IntersectionObserver(
+      ([entry]) => { visible = entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
+
     draw();
     const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
     window.addEventListener("resize", resize);
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibility);
+      observer.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -288,8 +312,8 @@ export function HeroSection() {
         style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
 
       {/* SPLIT SCREEN CONTENT */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 pt-24 sm:pt-28 pb-16 sm:pb-20 w-full">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
           {/* LEFT: Headline + CTAs */}
           <div>
@@ -304,7 +328,7 @@ export function HeroSection() {
             </div>
 
             {/* Headline */}
-            <h1 className="text-[68px] md:text-[80px] lg:text-[88px] font-black leading-[0.88] tracking-tight mb-8">
+            <h1 className="text-[42px] sm:text-[56px] md:text-[72px] lg:text-[88px] font-black leading-[0.9] tracking-tight mb-6 md:mb-8">
               <span className="block text-white">The AI team</span>
               <span className="block relative">
                 <span className="gradient-text text-glow">{displayed}</span>
@@ -315,7 +339,7 @@ export function HeroSection() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-zinc-400 mb-10 leading-relaxed max-w-lg">
+            <p className="text-base md:text-xl text-zinc-400 mb-8 md:mb-10 leading-relaxed max-w-lg">
               Deploy autonomous AI employees that send emails, post on every social network, and research leads — 24/7, zero clicks.
             </p>
 

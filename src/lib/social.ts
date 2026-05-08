@@ -9,7 +9,21 @@ export async function postToFacebook(
   pageId: string,
   pageToken: string,
   message: string,
+  imageUrl?: string,
 ): Promise<string> {
+  // Post with image as a photo
+  if (imageUrl) {
+    const res = await fetch(`${GRAPH}/${pageId}/photos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caption: message, url: imageUrl, access_token: pageToken }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error?.message || "Facebook photo post failed");
+    return data.id || data.post_id;
+  }
+
+  // Text-only fallback
   const res = await fetch(`${GRAPH}/${pageId}/feed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

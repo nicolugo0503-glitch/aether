@@ -47,6 +47,23 @@ model User {
   twitterAccessToken  String?
   twitterAccessSecret String?
 
+  // Email verification
+  emailVerified     Boolean   @default(false)
+  emailVerifyToken  String?   @unique
+
+  // Password reset
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+
+  // Social auto-schedule
+  scheduleEnabled    Boolean   @default(false)
+  scheduleTime       String    @default("09:00")   // "HH:MM" in user's chosen timezone
+  scheduleTimezone   String    @default("UTC")
+  scheduleFrequency  String    @default("daily")   // "daily" | "every2days" | "weekly"
+  scheduleTopic      String?                        // null = AI picks randomly
+  schedulePlatforms  String    @default("[\"facebook\",\"instagram\"]")
+  scheduleNextRun    DateTime?
+
   agents      Agent[]
   runs        Run[]
   campaigns   Campaign[]
@@ -62,6 +79,7 @@ model SocialPost {
   hashtags    String
   platforms   String   @default("[]")
   status      String   @default("draft")
+  imageUrl    String?
   fbPostId    String?
   igPostId    String?
   xPostId     String?

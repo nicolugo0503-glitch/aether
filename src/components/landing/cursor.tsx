@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
@@ -7,8 +7,19 @@ export function CustomCursor() {
   const mouse = useRef({ x: -100, y: -100 });
   const ring = useRef({ x: -100, y: -100 });
   const rafRef = useRef<number>(0);
+  const [isPointerDevice, setIsPointerDevice] = useState(false);
+
+  // Only show on devices with a real mouse (not touch)
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: fine)");
+    setIsPointerDevice(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsPointerDevice(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
+    if (!isPointerDevice) return;
     const dot = dotRef.current;
     const ringEl = ringRef.current;
     if (!dot || !ringEl) return;
@@ -28,7 +39,6 @@ export function CustomCursor() {
     rafRef.current = requestAnimationFrame(animate);
     window.addEventListener("mousemove", onMove);
 
-    // Hover expand effect
     const expand = () => ringEl.classList.add("cursor-hover");
     const shrink = () => ringEl.classList.remove("cursor-hover");
 
@@ -40,7 +50,6 @@ export function CustomCursor() {
     };
 
     bindHover();
-    // Re-bind after DOM changes (rough MutationObserver)
     const observer = new MutationObserver(bindHover);
     observer.observe(document.body, { childList: true, subtree: true });
 
@@ -49,7 +58,10 @@ export function CustomCursor() {
       cancelAnimationFrame(rafRef.current);
       observer.disconnect();
     };
-  }, []);
+  }, [isPointerDevice]);
+
+  // Don't render anything on touch devices
+  if (!isPointerDevice) return null;
 
   return (
     <>

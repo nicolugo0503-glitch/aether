@@ -2,455 +2,334 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
-import { CommandPalette } from "./_components/command-palette";
-import { AiAssistant }   from "./_components/ai-assistant";
+import { centsToUSD, formatDate } from "@/lib/utils";
+import {
+  Bot, Play, Gauge, TrendingUp, TrendingDown, Minus,
+  ChevronRight, Settings, Megaphone, Share2,
+  ArrowUpRight, Clock, CheckCircle2, XCircle, Loader2,
+  Plus, Sparkles, Activity, ListChecks, CreditCard,
+} from "lucide-react";
+import { Aurora }          from "./_components/aurora";
+import { ParticleCanvas } from "./_components/particle-canvas";
+import { Sparkline }       from "./_components/sparkline";
+import { AnimatedCounter } from "./_components/animated-counter";
+import { TiltCard }        from "./_components/tilt-card";
+import { LiveFeed }        from "./_components/live-feed";
+import { CommandPalette }  from "./_components/command-palette";
+import { AiAssistant }     from "./_components/ai-assistant";
 
-export const metadata = { title: "Command Center | Aether" };
-
-function seedHash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
+function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up") {
+  const pts: number[] = [];
+  let v = 30 + (seed % 20);
+  for (let i = 0; i < n; i++) {
+    const noise = ((seed * (i + 1) * 1234567) % 13) - 6;
+    v += trend === "up" ? 2 + noise * 0.4 : trend === "down" ? -1 + noise * 0.4 : noise;
+    pts.push(Math.max(5, Math.min(95, v)));
+  }
+  return pts;
 }
-
-function WireframeSphere() {
-  const meridians = [0, 30, 60, 90, 120, 150];
-  return (
-    <svg viewBox="-50 -50 100 100" className="w-full h-full">
-      <defs>
-        <radialGradient id="sphGlow" cx="40%" cy="35%" r="60%">
-          <stop offset="0%" stopColor="#0066ff" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-        </radialGradient>
-        <filter id="sphBloom" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="0.5" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      <circle cx="0" cy="0" r="42" fill="url(#sphGlow)" />
-      <circle cx="0" cy="0" r="42" fill="none" stroke="#0066ff" strokeWidth="0.5" opacity="0.5" />
-      {[0, -14, -26, -35, 14, 26, 35].map((y, i) => {
-        const rx = Math.sqrt(Math.max(0, 42 * 42 - y * y));
-        return <ellipse key={i} cx="0" cy={y} rx={rx} ry={rx * 0.28}
-          fill="none" stroke="#00d9ff" strokeWidth="0.35" opacity={0.8 - Math.abs(y) / 60}
-          filter="url(#sphBloom)" />;
-      })}
-      {meridians.map((a, i) => {
-        const r = (a * Math.PI) / 180;
-        return <line key={i} x1={Math.sin(r) * 42} y1={-42} x2={-Math.sin(r) * 42} y2={42}
-          stroke="#003580" strokeWidth="0.25" opacity="0.5"
-          strokeDasharray={i % 2 === 0 ? "none" : "1,2"} />;
-      })}
-      {[[-20, -18], [15, -28], [28, 5], [-8, 30], [35, -10]].map(([x, y], i) => (
-        <g key={i}>
-          <circle cx={x} cy={y} r="1.5" fill="#ffd700" opacity="0.9">
-            <animate attributeName="r" values="1.5;2.2;1.5" dur={`${1.6 + i * 0.4}s`} repeatCount="indefinite" />
-          </circle>
-          <circle cx={x} cy={y} r="3.5" fill="none" stroke="#ffd700" strokeWidth="0.3" opacity="0.25">
-            <animate attributeName="r" values="2;4.5;2" dur={`${1.6 + i * 0.4}s`} repeatCount="indefinite" />
-          </circle>
-        </g>
-      ))}
-      <line x1="0" y1="-44" x2="0" y2="44" stroke="#002060" strokeWidth="0.3" strokeDasharray="2,3" />
-      <line x1="-44" y1="0" x2="44" y2="0" stroke="#002060" strokeWidth="0.3" strokeDasharray="2,3" />
-    </svg>
-  );
-}
-
-function CN({ v }: { v: string | number }) {
-  return (
-    <span style={{ position: "relative", display: "inline-block" }}>
-      <span style={{ visibility: "hidden" }}>{v}</span>
-      <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center" }}>
-        <span style={{ color: "#ff0033", filter: "blur(0.6px)", transform: "translateX(-0.7px)", position: "absolute" }}>{v}</span>
-        <span style={{ color: "#00ffee", filter: "blur(0.6px)", transform: "translateX(0.7px)", position: "absolute" }}>{v}</span>
-        <span style={{ color: "inherit", position: "relative" }}>{v}</span>
-      </span>
-    </span>
-  );
-}
-
-function SparkBar({ seed, color }: { seed: number; color: string }) {
-  const bars = Array.from({ length: 14 }, (_, i) => 20 + (seedHash(`${seed}-${i}`) % 80));
-  return (
-    <svg viewBox="0 0 56 24" style={{ width: 56, height: 24 }}>
-      {bars.map((h, i) => (
-        <rect key={i} x={i * 4} y={24 - h * 0.24} width="3" height={h * 0.24}
-          fill={color} opacity={0.25 + (i / bars.length) * 0.75} rx="0.5">
-          <animate attributeName="height" values={`${h * 0.24};${h * 0.32};${h * 0.24}`}
-            dur={`${1.3 + i * 0.07}s`} repeatCount="indefinite" />
-          <animate attributeName="y" values={`${24 - h * 0.24};${24 - h * 0.32};${24 - h * 0.24}`}
-            dur={`${1.3 + i * 0.07}s`} repeatCount="indefinite" />
-        </rect>
-      ))}
-    </svg>
-  );
-}
-
-const CSS = `
-  @property --ang-ov { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-  @keyframes spin-ov { to { --ang-ov: 360deg; } }
-  @keyframes drift-ov {
-    0%,100% { transform: translate(0,0) scale(1); }
-    33% { transform: translate(40px,-30px) scale(1.05); }
-    66% { transform: translate(-30px,40px) scale(0.96); }
-  }
-  @keyframes scan-ov { 0% { top:-2px; } 100% { top:100%; } }
-  @keyframes pulse-ov { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-  @keyframes holo-ov { 0%{transform:translateX(-100%);} 100%{transform:translateX(250%);} }
-
-  .ov-wrap { position:relative; }
-  .ov-aurora {
-    position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden; border-radius:inherit;
-  }
-  .ov-blob {
-    position:absolute; border-radius:50%; filter:blur(80px); opacity:0.1;
-    animation: drift-ov 12s ease-in-out infinite;
-  }
-  .ov-grid {
-    position:absolute; inset:0; pointer-events:none; z-index:0;
-    background-image:
-      linear-gradient(rgba(0,102,255,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,102,255,0.05) 1px, transparent 1px);
-    background-size:40px 40px;
-  }
-  .ov-card {
-    position:relative; overflow:hidden;
-    transition:transform 0.25s ease, box-shadow 0.25s ease;
-    border-radius:6px;
-  }
-  .ov-card:hover { transform:translateY(-3px); }
-  .ov-card::before {
-    content:''; position:absolute; inset:0;
-    background:linear-gradient(105deg,transparent 30%,rgba(0,180,255,0.04) 50%,transparent 70%);
-    animation:holo-ov 5s linear infinite;
-    pointer-events:none; z-index:5;
-  }
-  .ov-scanline {
-    position:absolute; left:0; right:0; height:2px;
-    background:linear-gradient(90deg,transparent,rgba(0,217,255,0.25),transparent);
-    animation:scan-ov 4s linear infinite;
-    pointer-events:none; z-index:4;
-  }
-  .ov-metric {
-    transition:background 0.15s;
-  }
-  .ov-metric:hover { background:rgba(0,102,255,0.06) !important; }
-  .ov-nav:hover {
-    background:rgba(0,102,255,0.12) !important;
-    box-shadow:0 0 10px rgba(0,102,255,0.15) !important;
-  }
-  .ov-agentrow:hover { background:rgba(0,102,255,0.06) !important; }
-  .ov-spin {
-    --ang-ov:0deg; animation:spin-ov 4s linear infinite;
-    background:conic-gradient(from var(--ang-ov),#0066ff,#00d9ff,#ffd700,#0066ff);
-    border-radius:5px; padding:1px;
-  }
-`;
 
 export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
 
-  const [agents, recentRuns, successAgg, allCount] = await Promise.all([
-    prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 6 }),
-    prisma.run.findMany({
-      where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 12,
-      include: { agent: true },
-    }),
-    prisma.run.aggregate({
-      where: { userId: user.id, status: "success" },
-      _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true,
-    }),
+  const [agents, recentRuns, totals, allCount] = await Promise.all([
+    prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.run.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10, include: { agent: true } }),
+    prisma.run.aggregate({ where: { userId: user.id, status: "success" }, _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true }),
     prisma.run.count({ where: { userId: user.id } }),
   ]);
 
-  const failedCount  = await prisma.run.count({ where: { userId: user.id, status: "failed" } });
-  const limits       = PLAN_LIMITS[toPlanKey(user.plan)];
-  const displayName  = user.name || user.email.split("@")[0];
-  const initials     = displayName.slice(0, 2).toUpperCase();
-  const totalCost    = successAgg._sum.costCents ?? 0;
-  const successCount = successAgg._count ?? 0;
-  const seed         = seedHash(user.id);
-  const isPro        = user.plan !== "FREE";
-  const runsUsed     = user.runsUsedThisPeriod ?? 0;
-  const pct          = Math.min((runsUsed / limits.monthlyRuns) * 100, 100);
-  const successRate  = allCount > 0 ? ((successCount / allCount) * 100).toFixed(3) : "0.000";
-  const agentStubs   = agents.map(a => ({ id: a.id, name: a.name, role: a.role }));
+  const limits      = PLAN_LIMITS[toPlanKey(user.plan)];
+  const displayName = user.name || user.email.split("@")[0];
+  const initials    = displayName[0].toUpperCase();
+  const totalCost   = totals._sum.costCents ?? 0;
+  const successCount = totals._count ?? 0;
+  const seed        = user.id.charCodeAt(0) + user.id.charCodeAt(1);
+  const isPro       = user.plan !== "FREE";
+  const runsUsed    = user.runsUsedThisPeriod ?? 0;
+  const pct         = Math.min((runsUsed / limits.monthlyRuns) * 100, 100);
+  const barColor    = pct > 80 ? "#ef4444" : pct > 60 ? "#f59e0b" : "#7c3aed";
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  const agentStubs = agents.map(a => ({ id: a.id, name: a.name, role: a.role }));
 
   const STAT_CARDS = [
-    { id: "ASSET-001", label: "Active Assets",      value: agents.length,                      color: "#0066ff", seed,     sublabel: `${limits.agents - agents.length} slots free`,      href: "/dashboard/agents"  },
-    { id: "EXEC-002",  label: "Successful Ops",     value: successCount,                        color: "#00d9ff", seed: seed+1, sublabel: `${failedCount} failed // ${allCount} total`,  href: "/dashboard/runs"    },
-    { id: "THRP-003",  label: "Period Throughput",  value: runsUsed,                            color: "#ffd700", seed: seed+2, sublabel: `${pct.toFixed(2)}% capacity`,                  href: "/dashboard/runs"    },
-    { id: "COST-004",  label: "Capital Deployed",   value: `$${(totalCost/100).toFixed(2)}`,    color: "#00ff88", seed: seed+3, sublabel: `${successRate}% success rate`,                 href: "/dashboard/billing" },
+    { label: "AI Employees",    value: agents.length,    suffix: ` / ${limits.agents}`, icon: Bot,          iconColor: "#7c3aed", spark: genSparkline(seed,     10, "up"),   sparkColor: "#7c3aed", trend: "up"   as const, trendLabel: "+2 this week", href: "/dashboard/agents"  },
+    { label: "Successful Runs", value: successCount,     suffix: "",                    icon: CheckCircle2, iconColor: "#10b981", spark: genSparkline(seed + 3, 10, "up"),   sparkColor: "#10b981", trend: "up"   as const, trendLabel: "all time",     href: "/dashboard/runs"    },
+    { label: "Runs This Period", value: runsUsed,        suffix: ` / ${limits.monthlyRuns}`, icon: Activity, iconColor: "#f59e0b", spark: genSparkline(seed + 7, 10, "flat"), sparkColor: "#f59e0b", trend: "flat" as const, trendLabel: "this month",   href: "/dashboard/runs"    },
+    { label: "Est. Spend",      value: Math.round(totalCost / 100), prefix: "$", suffix: "", icon: TrendingUp, iconColor: "#ec4899", spark: genSparkline(seed + 11,10, "up"),  sparkColor: "#ec4899", trend: "up"   as const, trendLabel: "lifetime",     href: "/dashboard/billing" },
   ];
-
-  const AGENT_COLORS = ["#0066ff","#00d9ff","#ffd700","#00ff88","#ff6b35","#c084fc"];
-
-  const STATUS_COLORS: Record<string, string> = {
-    success: "#00ff88", failed: "#ff2d55", running: "#ffd700", pending: "#6366f1",
-  };
 
   return (
     <>
+      {/* Global overlays */}
       <CommandPalette agents={agentStubs} />
       <AiAssistant />
-      <style>{CSS}</style>
 
-      <div className="ov-wrap" style={{ minHeight: "100vh", background: "#000a1a" }}>
-        {/* Contained background — does NOT escape the content area */}
-        <div className="ov-aurora">
-          <div className="ov-blob" style={{ width:500, height:500, background:"radial-gradient(circle,#0066ff,transparent)", top:-150, left:-100, animationDelay:"0s" }} />
-          <div className="ov-blob" style={{ width:400, height:400, background:"radial-gradient(circle,#003580,transparent)", bottom:-100, right:-50, animationDelay:"-6s" }} />
-          <div className="ov-blob" style={{ width:250, height:250, background:"radial-gradient(circle,#ffd70015,transparent)", top:"40%", left:"50%", animationDelay:"-10s" }} />
-        </div>
-        <div className="ov-grid" />
+      <div className="relative min-h-screen">
+        {/* Background layers */}
+        <Aurora />
+        <ParticleCanvas />
 
-        <div style={{ position:"relative", zIndex:10 }}>
+        <div className="relative z-10 space-y-7">
 
-          {/* ── SYSTEM HEADER ────────────────────────────────── */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", paddingBottom:20, marginBottom:20, borderBottom:"1px solid rgba(0,102,255,0.12)" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              {/* Orbital avatar */}
-              <div style={{ position:"relative", width:44, height:44, flexShrink:0 }}>
-                <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%" }}>
-                  <circle cx="22" cy="22" r="19" fill="none" stroke="#0066ff" strokeWidth="1" strokeDasharray="4,3" opacity="0.4">
-                    <animateTransform attributeName="transform" type="rotate" from="0 22 22" to="360 22 22" dur="8s" repeatCount="indefinite" />
-                  </circle>
-                </svg>
-                <div style={{ position:"absolute", inset:5, background:"linear-gradient(135deg,#0066ff88,#00d9ff44)", border:"1px solid #0066ff55", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:900, color:"#e0e7ff", fontFamily:"monospace" }}>{initials}</div>
-                <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:5, height:5, borderRadius:"50%", background:"#ffd700", boxShadow:"0 0 6px #ffd700" }} />
-              </div>
-              <div>
-                <div style={{ fontSize:8, fontFamily:"monospace", color:"#4a5580", letterSpacing:"0.15em", textTransform:"uppercase" }}>OPERATOR // {user.email}</div>
-                <div style={{ fontSize:16, fontWeight:900, color:"#e0e7ff", fontFamily:"'JetBrains Mono',monospace", letterSpacing:"-0.3px" }}>{displayName.toUpperCase()}</div>
-                <div style={{ fontSize:8, fontFamily:"monospace", color:"#4a5580" }}>
-                  PLAN: <span style={{ color: isPro?"#ffd700":"#4a5580" }}>{user.plan}</span>
-                  &nbsp;&bull;&nbsp;
-                  CLEARANCE: <span style={{ color: isPro?"#00ff88":"#ffd700" }}>{isPro?"ELEVATED":"STANDARD"}</span>
+          {/* ── HERO ── */}
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-0.5">
+                <div style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(135deg,#7c3aed,#ec4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff", boxShadow: "0 0 20px rgba(124,58,237,0.5), 0 0 44px rgba(124,58,237,0.18)", flexShrink: 0 }}>
+                  {initials}
+                </div>
+                <div>
+                  <p className="text-xs font-medium" style={{ color: "#52525b" }}>{greeting},</p>
+                  <h1 className="font-black text-white leading-tight" style={{ fontSize: 22, letterSpacing: "-0.5px" }}>
+                    {displayName}
+                  </h1>
                 </div>
               </div>
+              <p className="text-sm ml-[54px]" style={{ color: "#52525b" }}>
+                Your AI workforce is live.
+              </p>
             </div>
 
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:4, background:"rgba(0,255,136,0.06)", border:"1px solid rgba(0,255,136,0.15)", fontFamily:"monospace", fontSize:9, letterSpacing:"0.12em", color:"#00ff88" }}>
-                <span style={{ width:5, height:5, borderRadius:"50%", background:"#00ff88", boxShadow:"0 0 6px #00ff88", display:"inline-block", animation:"pulse-ov 2s ease infinite" }} />
-                SYSTEMS NOMINAL
+            <div className="flex items-center gap-2 mt-2 sm:mt-0">
+              {/* ⌘K hint */}
+              <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", cursor: "default" }}>
+                <kbd style={{ fontSize: 10, color: "#52525b", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4, padding: "1px 5px", fontFamily: "inherit" }}>⌘K</kbd>
+                <span style={{ fontSize: 11, color: "#3f3f46" }}>Search</span>
               </div>
-              <div style={{ padding:"6px 12px", borderRadius:4, background:"rgba(0,102,255,0.06)", border:"1px solid rgba(0,102,255,0.12)", fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:"0.08em", color:"#4a5580" }}>
-                {new Date().toISOString().replace("T"," ").slice(0,16)} UTC
-              </div>
-              <Link href="/dashboard/agents" style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 16px", borderRadius:4, background:"linear-gradient(135deg,#0055cc,#003399)", border:"1px solid rgba(0,102,255,0.35)", color:"#e0e7ff", fontSize:10, fontWeight:700, fontFamily:"monospace", letterSpacing:"0.1em", textDecoration:"none", boxShadow:"0 0 16px rgba(0,102,255,0.2)", textTransform:"uppercase" }}>
-                + DEPLOY ASSET
+              <Link
+                href="/dashboard/agents"
+                style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#7c3aed,#6d28d9)", color: "#fff", borderRadius: 11, padding: "8px 16px", fontSize: 12, fontWeight: 700, boxShadow: "0 0 14px rgba(124,58,237,0.38)", textDecoration: "none" }}
+              >
+                <Plus size={14} />
+                Hire AI Employee
               </Link>
             </div>
           </div>
 
-          {/* ── HERO: SPHERE + KPI GRID ──────────────────────── */}
-          <div style={{ display:"grid", gridTemplateColumns:"160px 1fr", gap:24, marginBottom:24, alignItems:"center" }}>
-            {/* Sphere */}
-            <div style={{ position:"relative", width:160, height:160 }}>
-              <div style={{ position:"absolute", inset:0, borderRadius:"50%", background:"radial-gradient(circle at 35% 35%,rgba(0,102,255,0.1),transparent 70%)", border:"1px solid rgba(0,102,255,0.18)" }} />
-              <WireframeSphere />
-              <div style={{ position:"absolute", bottom:-20, left:"50%", transform:"translateX(-50%)", fontFamily:"monospace", fontSize:8, color:"#4a5580", letterSpacing:"0.1em", textTransform:"uppercase", whiteSpace:"nowrap" }}>
-                AETHER-NET // {agents.length} NODE{agents.length!==1?"S":""} ACTIVE
-              </div>
-            </div>
+          {/* ── STAT CARDS ── */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {STAT_CARDS.map(s => {
+              const TrendIcon = s.trend === "up" ? TrendingUp : s.trend === ("down" as string) ? TrendingDown : Minus;
+              const tc = s.trend === "up" ? "#10b981" : s.trend === ("down" as string) ? "#ef4444" : "#71717a";
+              return (
+                <TiltCard key={s.label} style={{ borderRadius: 16 }}>
+                  <Link
+                    href={s.href}
+                    style={{ display: "block", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 18, textDecoration: "none", position: "relative", overflow: "hidden" }}
+                  >
+                    {/* ambient glow */}
+                    <div style={{ position: "absolute", inset: 0, borderRadius: 16, background: `radial-gradient(circle at 15% 15%, ${s.iconColor}12 0%, transparent 55%)`, pointerEvents: "none" }} />
 
-            {/* KPI cards */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
-              {STAT_CARDS.map(s => (
-                <Link key={s.id} href={s.href} style={{ textDecoration:"none" }}>
-                  <div className="ov-card" style={{ background:"rgba(0,10,30,0.88)", border:`1px solid ${s.color}30`, padding:"14px 14px 12px", backdropFilter:"blur(20px)", boxShadow:`0 0 24px ${s.color}0d,inset 0 1px 0 ${s.color}20` }}>
-                    <div className="ov-scanline" />
-                    <div style={{ position:"absolute", top:6, right:8, fontSize:7, fontFamily:"monospace", color:`${s.color}77`, letterSpacing:"0.1em" }}>{s.id}</div>
-                    <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:`linear-gradient(90deg,${s.color},transparent)` }} />
-                    <div style={{ fontSize:8, fontFamily:"monospace", color:"#4a5580", textTransform:"uppercase", letterSpacing:"0.12em", marginBottom:8 }}>{s.label}</div>
-                    <div style={{ fontSize:26, fontWeight:900, color:"#e0e7ff", fontFamily:"'JetBrains Mono','Courier New',monospace", lineHeight:1, marginBottom:6, textShadow:`0 0 20px ${s.color}55` }}>
-                      <CN v={s.value} />
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+                        <div>
+                          <p style={{ fontSize: 9, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.07em", fontWeight: 600, marginBottom: 4 }}>{s.label}</p>
+                          <div style={{ fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1 }}>
+                            {s.prefix ?? ""}
+                            <AnimatedCounter value={s.value} />
+                            <span style={{ fontSize: 12, fontWeight: 400, color: "#52525b" }}>{s.suffix}</span>
+                          </div>
+                        </div>
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: `${s.iconColor}14`, border: `1px solid ${s.iconColor}22`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <s.icon size={15} color={s.iconColor} />
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: tc }}>
+                          <TrendIcon size={11} color={tc} />
+                          {s.trendLabel}
+                        </div>
+                        <Sparkline values={s.spark} color={s.sparkColor} width={80} height={26} />
+                      </div>
                     </div>
-                    <div style={{ fontSize:8, fontFamily:"monospace", color:`${s.color}aa`, marginBottom:8, letterSpacing:"0.05em" }}>{s.sublabel}</div>
-                    <SparkBar seed={s.seed} color={s.color} />
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                </TiltCard>
+              );
+            })}
           </div>
 
-          {/* ── 3D PERSPECTIVE METRIC STRIP ──────────────────── */}
-          <div style={{ perspective:"800px", perspectiveOrigin:"50% -50%", marginBottom:24 }}>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(6,1fr)", gap:8, transform:"rotateX(16deg) scale(0.98)", transformOrigin:"50% 0%", transformStyle:"preserve-3d" }}>
-              {[
-                { label:"Success Rate",     value:successRate,                  unit:"%",    ok: parseFloat(successRate)>80 },
-                { label:"Assets Deployed",  value:String(agents.length),        unit:"units", ok:true },
-                { label:"Period Quota",     value:pct.toFixed(2),               unit:"%",    ok: pct<80 },
-                { label:"Capital",          value:`$${(totalCost/100).toFixed(2)}`, unit:"USD", ok:true },
-                { label:"Total Ops",        value:String(allCount),             unit:"ops",  ok:true },
-                { label:"Failed Ops",       value:String(failedCount),          unit:"ops",  ok: failedCount===0 },
-              ].map((m, i) => {
-                const sc = m.ok ? "#00ff88" : "#ffd700";
-                return (
-                  <div key={i} style={{ background:"rgba(0,8,24,0.92)", border:`1px solid ${sc}18`, borderRadius:4, padding:"10px 12px", backdropFilter:"blur(20px)", boxShadow:`0 8px 24px rgba(0,0,0,0.5),0 0 12px ${sc}06` }}>
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
-                      <span style={{ fontSize:7, fontFamily:"monospace", color:"#4a5580", textTransform:"uppercase", letterSpacing:"0.12em" }}>{m.label}</span>
-                      <span style={{ width:4, height:4, borderRadius:"50%", background:sc, boxShadow:`0 0 4px ${sc}` }} />
-                    </div>
-                    <div style={{ fontSize:15, fontWeight:900, fontFamily:"'JetBrains Mono',monospace", color:"#e0e7ff", lineHeight:1 }}>
-                      {m.value}<span style={{ fontSize:8, color:"#4a5580", marginLeft:3 }}>{m.unit}</span>
-                    </div>
+          {/* ── MAIN GRID ── */}
+          <div className="grid gap-5 lg:grid-cols-3">
+
+            {/* Live Feed — 2 cols */}
+            <div className="lg:col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.018)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <Play size={14} color="#a78bfa" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Live Run Feed</span>
+                  <span style={{ fontSize: 10, color: "#52525b", background: "rgba(255,255,255,0.04)", borderRadius: 999, padding: "1px 8px" }}>{allCount} total</span>
+                  {/* live indicator */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", display: "inline-block", animation: "liveDot 1.8s ease infinite" }} />
+                    <span style={{ fontSize: 9, color: "#10b981", fontWeight: 600, letterSpacing: "0.05em" }}>LIVE</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ── MAIN GRID ────────────────────────────────────── */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 300px", gap:16 }}>
-
-            {/* EXECUTION LOG */}
-            <div style={{ background:"rgba(0,8,24,0.88)", border:"1px solid rgba(0,102,255,0.14)", borderRadius:6, overflow:"hidden", backdropFilter:"blur(20px)" }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 16px", borderBottom:"1px solid rgba(0,102,255,0.1)", background:"rgba(0,20,60,0.35)" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ width:7, height:7, borderRadius:"50%", background:"#00ff88", boxShadow:"0 0 7px #00ff88", display:"inline-block", animation:"pulse-ov 2s ease infinite" }} />
-                  <span style={{ fontSize:10, fontFamily:"monospace", color:"#e0e7ff", letterSpacing:"0.15em", textTransform:"uppercase", fontWeight:700 }}>EXECUTION LOG</span>
-                  <span style={{ fontSize:8, fontFamily:"monospace", color:"#4a5580", padding:"1px 6px", border:"1px solid rgba(0,102,255,0.14)", borderRadius:2 }}>{allCount} TOTAL</span>
                 </div>
-                <Link href="/dashboard/runs" style={{ fontSize:8, fontFamily:"monospace", color:"#0066ff", textDecoration:"none", letterSpacing:"0.1em", padding:"4px 10px", border:"1px solid rgba(0,102,255,0.18)", borderRadius:2 }}>VIEW ALL ›</Link>
-              </div>
-
-              {/* Column headers */}
-              <div style={{ display:"grid", gridTemplateColumns:"80px 1fr 90px 70px", gap:0, padding:"5px 16px", borderBottom:"1px solid rgba(0,102,255,0.06)", background:"rgba(0,20,60,0.15)" }}>
-                {["TIMESTAMP","ASSET","STATUS","COST"].map(h => (
-                  <span key={h} style={{ fontSize:7, fontFamily:"monospace", color:"#4a5580", textTransform:"uppercase", letterSpacing:"0.12em" }}>{h}</span>
-                ))}
+                <Link href="/dashboard/runs" style={{ fontSize: 11, color: "#52525b", display: "flex", alignItems: "center", gap: 3, textDecoration: "none" }}>
+                  View all <ChevronRight size={12} />
+                </Link>
               </div>
 
               {recentRuns.length === 0 ? (
-                <div style={{ padding:"40px 16px", textAlign:"center" }}>
-                  <div style={{ fontFamily:"monospace", fontSize:10, color:"#4a5580", letterSpacing:"0.15em" }}>NO EXECUTION RECORDS</div>
-                </div>
-              ) : recentRuns.map((r, i) => {
-                const sc = STATUS_COLORS[r.status] || "#4a5580";
-                const cost = r.costCents ? `$${(r.costCents/100).toFixed(4)}` : "—";
-                const ts = new Date(r.createdAt).toISOString().slice(11,19);
-                const agentName = (r.agent?.name || "UNKNOWN").slice(0,14).toUpperCase();
-                return (
-                  <div key={r.id} className="ov-metric" style={{ display:"grid", gridTemplateColumns:"80px 1fr 90px 70px", alignItems:"center", gap:0, padding:"7px 16px", borderBottom:"1px solid rgba(0,102,255,0.04)", opacity: 1 - i*0.04 }}>
-                    <span style={{ fontSize:9, fontFamily:"'JetBrains Mono',monospace", color:"#4a5580" }}>{ts}</span>
-                    <span style={{ fontSize:9, fontFamily:"'JetBrains Mono',monospace", color:"#e0e7ff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{agentName}</span>
-                    <span style={{ fontSize:8, fontFamily:"monospace", color:sc, letterSpacing:"0.08em" }}>{r.status.toUpperCase()}</span>
-                    <span style={{ fontSize:9, fontFamily:"'JetBrains Mono',monospace", color:"#4a5580" }}>{cost}</span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "52px 24px", textAlign: "center" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <Sparkles size={18} color="#7c3aed" />
                   </div>
-                );
-              })}
+                  <p style={{ fontSize: 13, color: "#d4d4d8", fontWeight: 500, marginBottom: 4 }}>No runs yet</p>
+                  <p style={{ fontSize: 12, color: "#52525b" }}>Your AI employees await their first assignment.</p>
+                </div>
+              ) : (
+                <LiveFeed initialCount={recentRuns.length} />
+              )}
             </div>
 
-            {/* RIGHT COLUMN */}
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {/* Right column */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-              {/* Asset Registry */}
-              <div style={{ background:"rgba(0,8,24,0.88)", border:"1px solid rgba(0,102,255,0.14)", borderRadius:6, overflow:"hidden", backdropFilter:"blur(20px)" }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", borderBottom:"1px solid rgba(0,102,255,0.08)", background:"rgba(0,20,60,0.25)" }}>
-                  <span style={{ fontSize:9, fontFamily:"monospace", color:"#e0e7ff", letterSpacing:"0.15em", textTransform:"uppercase", fontWeight:700 }}>ASSET REGISTRY</span>
-                  <Link href="/dashboard/agents" style={{ fontSize:7, fontFamily:"monospace", color:"#0066ff", textDecoration:"none", letterSpacing:"0.1em" }}>VIEW ALL</Link>
+              {/* Quick Actions */}
+              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.018)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <Sparkles size={14} color="#a78bfa" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Quick Actions</span>
                 </div>
-                {agents.length === 0 ? (
-                  <div style={{ padding:"20px 14px", textAlign:"center" }}>
-                    <div style={{ fontFamily:"monospace", fontSize:9, color:"#4a5580" }}>NO ASSETS REGISTERED</div>
-                    <Link href="/dashboard/agents" style={{ fontSize:9, fontFamily:"monospace", color:"#0066ff", textDecoration:"none", display:"block", marginTop:8 }}>+ REGISTER FIRST ASSET</Link>
-                  </div>
-                ) : agents.map((a, i) => {
-                  const col = AGENT_COLORS[i % AGENT_COLORS.length];
-                  return (
-                    <Link key={a.id} href={`/dashboard/agents/${a.id}`} className="ov-agentrow" style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderBottom:"1px solid rgba(0,102,255,0.05)", textDecoration:"none" }}>
-                      <div style={{ width:30, height:30, borderRadius:4, background:`linear-gradient(135deg,${col}44,${col}22)`, border:`1px solid ${col}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, color:col, fontFamily:"monospace", flexShrink:0, boxShadow:`0 4px 8px rgba(0,0,0,0.4),0 0 8px ${col}18` }}>{a.name[0].toUpperCase()}</div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:10, fontWeight:700, fontFamily:"monospace", color:"#e0e7ff", textTransform:"uppercase", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</div>
-                        <div style={{ fontSize:7, fontFamily:"monospace", color:"#4a5580", letterSpacing:"0.06em" }}>AST-{String(i+1).padStart(3,"0")} // {(a.role||"AGENT").slice(0,18).toUpperCase()}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, padding: 10 }}>
+                  {[
+                    { href: "/dashboard/agents",    icon: Bot,         label: "AI Employees", color: "#7c3aed" },
+                    { href: "/dashboard/campaigns", icon: Megaphone,   label: "Campaigns",    color: "#ec4899" },
+                    { href: "/dashboard/social",    icon: Share2,      label: "Social Media", color: "#3b82f6" },
+                    { href: "/dashboard/settings",  icon: Settings,    label: "Settings",     color: "#10b981" },
+                  ].map(q => (
+                    <Link
+                      key={q.href}
+                      href={q.href}
+                      style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 7, borderRadius: 11, padding: "11px 12px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", textDecoration: "none", transition: "transform 0.15s" }}
+                      onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.03)")}
+                      onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+                    >
+                      <div style={{ width: 26, height: 26, borderRadius: 8, background: `${q.color}12`, border: `1px solid ${q.color}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <q.icon size={12} color={q.color} />
                       </div>
-                      <span style={{ width:5, height:5, borderRadius:"50%", background:col, boxShadow:`0 0 5px ${col}`, flexShrink:0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#d4d4d8" }}>{q.label}</span>
                     </Link>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
 
-              {/* Telemetry */}
-              <div style={{ background:"rgba(0,8,24,0.88)", border:"1px solid rgba(0,102,255,0.14)", borderRadius:6, padding:"10px 14px", backdropFilter:"blur(20px)" }}>
-                <div style={{ fontSize:9, fontFamily:"monospace", color:"#e0e7ff", letterSpacing:"0.15em", textTransform:"uppercase", marginBottom:10, fontWeight:700 }}>SYSTEM TELEMETRY</div>
-                {[
-                  { label:"Agent Capacity", value:`${agents.length}/${limits.agents}`, unit:"units", ok: agents.length<limits.agents },
-                  { label:"Period Usage",   value:pct.toFixed(3),                      unit:"%",     ok: pct<80 },
-                  { label:"Success Rate",   value:successRate,                          unit:"%",     ok: parseFloat(successRate)>80 },
-                  { label:"Total Ops",      value:String(allCount),                    unit:"ops",   ok:true },
-                  { label:"Capital USD",    value:`${(totalCost/100).toFixed(4)}`,     unit:"USD",   ok:true },
-                ].map((m, i) => {
-                  const sc = m.ok ? "#00ff88" : "#ffd700";
-                  return (
-                    <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid rgba(0,102,255,0.06)" }}>
-                      <span style={{ fontSize:8, fontFamily:"monospace", color:"#4a5580", textTransform:"uppercase", letterSpacing:"0.08em" }}>{m.label}</span>
-                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                        <span style={{ fontSize:10, fontFamily:"'JetBrains Mono',monospace", fontWeight:700, color:"#e0e7ff" }}>{m.value}</span>
-                        <span style={{ fontSize:7, fontFamily:"monospace", color:"#4a5580" }}>{m.unit}</span>
-                        <span style={{ width:4, height:4, borderRadius:"50%", background:sc, boxShadow:`0 0 4px ${sc}` }} />
+              {/* Workforce */}
+              <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.018)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Bot size={14} color="#a78bfa" />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Your Workforce</span>
+                  </div>
+                  <Link href="/dashboard/agents" style={{ fontSize: 11, color: "#52525b", textDecoration: "none" }}>View all</Link>
+                </div>
+
+                {agents.length === 0 ? (
+                  <div style={{ padding: "24px 16px", textAlign: "center" }}>
+                    <p style={{ fontSize: 12, color: "#52525b", marginBottom: 10 }}>No AI employees yet.</p>
+                    <Link href="/dashboard/agents" style={{ fontSize: 12, color: "#a78bfa", textDecoration: "none", fontWeight: 600 }}>+ Hire your first agent</Link>
+                  </div>
+                ) : (
+                  agents.slice(0, 4).map((a, i) => (
+                    <Link
+                      key={a.id}
+                      href={`/dashboard/agents/${a.id}`}
+                      style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 16px", borderBottom: "1px solid rgba(255,255,255,0.03)", textDecoration: "none" }}
+                    >
+                      <div style={{ width: 30, height: 30, borderRadius: 9, background: `linear-gradient(135deg, ${COLORS[i % COLORS.length][0]}, ${COLORS[i % COLORS.length][1]})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+                        {a.name[0].toUpperCase()}
                       </div>
-                    </div>
-                  );
-                })}
-                <div style={{ marginTop:10 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                    <span style={{ fontSize:7, fontFamily:"monospace", color:"#4a5580", textTransform:"uppercase", letterSpacing:"0.1em" }}>PERIOD QUOTA</span>
-                    <span style={{ fontSize:7, fontFamily:"monospace", color:"#e0e7ff" }}>{pct.toFixed(1)}%</span>
-                  </div>
-                  <div style={{ height:3, background:"rgba(0,102,255,0.08)", borderRadius:2, overflow:"hidden" }}>
-                    <div style={{ height:"100%", width:`${pct}%`, background: pct>80?"#ff2d55":"#0066ff", boxShadow:`0 0 6px ${pct>80?"#ff2d55":"#0066ff"}`, borderRadius:2, transition:"width 1s ease" }} />
-                  </div>
-                </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{a.name}</div>
+                        <div style={{ fontSize: 10, color: "#52525b" }}>{a.role}</div>
+                      </div>
+                      <ArrowUpRight size={12} color="#3f3f46" />
+                    </Link>
+                  ))
+                )}
               </div>
 
-              {/* Nav grid */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-                {[
-                  { href:"/dashboard/agents",    label:"ASSETS",  color:"#0066ff" },
-                  { href:"/dashboard/campaigns", label:"OPS",     color:"#ffd700" },
-                  { href:"/dashboard/social",    label:"SIGNALS", color:"#00d9ff" },
-                  { href:"/dashboard/settings",  label:"CONFIG",  color:"#00ff88" },
-                ].map(n => (
-                  <Link key={n.href} href={n.href} className="ov-nav" style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"8px 0", background:`${n.color}08`, border:`1px solid ${n.color}20`, borderRadius:4, color:n.color, fontSize:8, fontFamily:"monospace", fontWeight:700, letterSpacing:"0.15em", textDecoration:"none" }}>
-                    {n.label}
-                  </Link>
-                ))}
-              </div>
-
-              {/* Plan */}
-              <div style={{ background: isPro?"rgba(0,20,60,0.5)":"rgba(10,8,0,0.5)", border:`1px solid ${isPro?"rgba(0,102,255,0.22)":"rgba(255,215,0,0.18)"}`, borderRadius:6, padding:"12px 14px" }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-                  <span style={{ fontSize:8, fontFamily:"monospace", color:"#4a5580", letterSpacing:"0.15em", textTransform:"uppercase" }}>AUTHORIZATION</span>
-                  <span style={{ fontSize:8, fontFamily:"monospace", fontWeight:700, color: isPro?"#0066ff":"#ffd700", padding:"2px 8px", borderRadius:2, background: isPro?"rgba(0,102,255,0.1)":"rgba(255,215,0,0.08)", border:`1px solid ${isPro?"rgba(0,102,255,0.18)":"rgba(255,215,0,0.12)"}`, letterSpacing:"0.1em" }}>{user.plan}</span>
+              {/* Plan / Usage */}
+              <div className="rounded-2xl" style={{ background: "rgba(255,255,255,0.018)", border: "1px solid rgba(255,255,255,0.06)", padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "#fff" }}>
+                    <Gauge size={14} color="#71717a" />
+                    Usage
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: isPro ? "#a78bfa" : "#71717a", background: isPro ? "rgba(124,58,237,0.14)" : "rgba(113,113,122,0.1)", border: `1px solid ${isPro ? "rgba(124,58,237,0.22)" : "rgba(113,113,122,0.16)"}`, borderRadius: 999, padding: "2px 9px" }}>
+                    {user.plan}
+                  </span>
                 </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#52525b", marginBottom: 5 }}>
+                  <span>Runs this period</span>
+                  <span style={{ color: "#fff", fontWeight: 500 }}>{runsUsed} / {limits.monthlyRuns}</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 999, background: "rgba(255,255,255,0.06)", overflow: "hidden", marginBottom: 14 }}>
+                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 999, background: barColor, boxShadow: `0 0 6px ${barColor}55`, transition: "width 1s ease" }} />
+                </div>
+
                 {!isPro && (
-                  <Link href="/dashboard/billing" style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"8px 0", background:"linear-gradient(135deg,#0055cc,#003399)", border:"1px solid rgba(0,102,255,0.25)", borderRadius:4, color:"#e0e7ff", fontSize:9, fontFamily:"monospace", fontWeight:700, letterSpacing:"0.15em", textDecoration:"none", textTransform:"uppercase", boxShadow:"0 0 14px rgba(0,102,255,0.18)" }}>
-                    REQUEST ELEVATION ›
+                  <Link
+                    href="/dashboard/billing"
+                    style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, padding: "8px 0", background: "linear-gradient(135deg,#7c3aed,#6d28d9)", color: "#fff", fontSize: 12, fontWeight: 700, boxShadow: "0 0 14px rgba(124,58,237,0.3)", textDecoration: "none" }}
+                  >
+                    <Sparkles size={12} />
+                    Upgrade to Pro
                   </Link>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:20, paddingTop:10, borderTop:"1px solid rgba(0,102,255,0.06)" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              {["CORE:OK","DB:OK","AI:OK","NET:OK"].map((s,i) => (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap:4, fontSize:7, fontFamily:"monospace", color:"#4a5580", letterSpacing:"0.1em" }}>
-                  <span style={{ width:3, height:3, borderRadius:"50%", background:"#00ff88", boxShadow:"0 0 3px #00ff88" }} />
-                  {s}
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize:7, fontFamily:"monospace", color:"#2a3560", letterSpacing:"0.12em" }}>
-              AETHER // BUILD {new Date().toISOString().slice(0,10).replace(/-/g,"")}
+          {/* ── BOTTOM NAV STRIP ── */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingBottom: 8 }}>
+            {[
+              { href: "/dashboard/runs",     icon: ListChecks, label: "All Runs" },
+              { href: "/dashboard/campaigns",icon: Megaphone,  label: "Campaigns" },
+              { href: "/dashboard/social",   icon: Share2,     label: "Social" },
+              { href: "/dashboard/billing",  icon: CreditCard, label: "Billing" },
+              { href: "/dashboard/settings", icon: Settings,   label: "Settings" },
+            ].map(item => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "#71717a", textDecoration: "none", transition: "all 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(124,58,237,0.25)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)"; }}
+              >
+                <item.icon size={12} />
+                {item.label}
+              </Link>
+            ))}
+
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#3f3f46" }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", animation: "liveDot 2s ease infinite" }} />
+              All systems operational
             </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes liveDot {
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+          50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+        }
+      `}</style>
     </>
   );
 }
+
+// ── Agent avatar gradient pairs ──────────────────────────────────
+const COLORS = [
+  ["#7c3aed", "#6d28d9"],
+  ["#ec4899", "#db2777"],
+  ["#3b82f6", "#2563eb"],
+  ["#10b981", "#059669"],
+];

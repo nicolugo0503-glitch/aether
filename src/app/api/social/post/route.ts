@@ -25,7 +25,12 @@ export async function POST(req: NextRequest) {
     // Post to Facebook
     if (platforms.includes("facebook") && dbUser.fbPageId && dbUser.fbPageToken) {
       try {
-        results.facebook = await postToFacebook(dbUser.fbPageId, dbUser.fbPageToken, fullCaption);
+        results.facebook = await postToFacebook(
+          dbUser.fbPageId,
+          dbUser.fbPageToken,
+          fullCaption,
+          post.imageUrl ?? undefined,
+        );
       } catch (e: any) {
         errors.push(`Facebook: ${e.message}`);
       }
@@ -34,7 +39,12 @@ export async function POST(req: NextRequest) {
     // Post to Instagram
     if (platforms.includes("instagram") && dbUser.igUserId && dbUser.fbPageToken) {
       try {
-        results.instagram = await postToInstagram(dbUser.igUserId, dbUser.fbPageToken, fullCaption);
+        results.instagram = await postToInstagram(
+          dbUser.igUserId,
+          dbUser.fbPageToken,
+          fullCaption,
+          post.imageUrl ?? undefined,
+        );
       } catch (e: any) {
         errors.push(`Instagram: ${e.message}`);
       }

@@ -1,41 +1,137 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
-import { hashPassword, createSession } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
+import { isRateLimited } from "@/lib/rate-limit";
 import { ArrowRight, Check, Shield, Zap } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
+import crypto from "crypto";
 
 async function signup(formData: FormData) {
   "use server";
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  if (isRateLimited(`signup:${ip}`, 5, 60 * 60 * 1000)) {
+    return redirect("/signup?error=ratelimit");
+  }
+
   const email = String(formData.get("email") || "").toLowerCase().trim();
   const password = String(formData.get("password") || "");
   const name = String(formData.get("name") || "").trim();
   if (!email || !password || password.length < 8) return redirect("/signup?error=invalid");
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return redirect("/signup?error=exists");
-  const user = await prisma.user.create({
+
+  const verifyToken = crypto.randomBytes(32).toString("hex");
+
+  await prisma.user.create({
     data: {
       email,
       name: name || email.split("@")[0],
       passwordHash: await hashPassword(password),
+      emailVerified: false,
+      emailVerifyToken: verifyToken,
       agents: {
-        create: {
-          name: "Ava — AI SDR",
-          role: "Sales Development Rep",
-          description: "Crafts hyper-personalized cold outreach from lead context.",
-          systemPrompt: "You are Ava, an elite B2B SDR. Given a lead profile, produce a tight 80-word cold email with a specific hook. No fluff, one CTA.",
+        createMany: {
+          data: [
+            {
+              name: "Ava — AI SDR",
+              role: "Sales Development Rep",
+              description: "Crafts hyper-personalized cold outreach from lead context.",
+              systemPrompt: "You are Ava, an elite B2B SDR. Given a lead profile, produce a tight 80-word cold email with a specific hook. No fluff, one CTA.",
+            },
+            {
+              name: "Rex — Market Researcher",
+              role: "Market Intelligence Analyst",
+              description: "Researches market trends, competitor landscape, and business opportunities.",
+              systemPrompt: "You are Rex, an expert market intelligence analyst. Given a company or topic, produce a sharp brief covering: market trends, top 3 competitors, key opportunities, and one strategic recommendation. Be concise and actionable.",
+            },
+            {
+              name: "Sage — Support Agent",
+              role: "Customer Support Specialist",
+              description: "Resolves customer support tickets automatically using your knowledge base.",
+              systemPrompt: "You are Sage, an expert support specialist. Given a customer message, write a clear empathetic response under 120 words. Resolve directly if possible, ask one clarifying question if needed, always offer further help.",
+            },
+            {
+              name: "Opus — Business Analyst",
+              role: "Business Intelligence Analyst",
+              description: "Monitors performance, flags anomalies, and writes weekly business summaries.",
+              systemPrompt: "You are Opus, a sharp business analyst. Given metrics or a business update, produce an executive summary: what is working, what needs attention, the key insight, and one recommendation. Be direct.",
+            },
+          ],
         },
       },
     },
   });
-  await createSession(user.id);
-  redirect("/dashboard");
+
+  // Send verification email via Resend
+  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.useaether.net"}/api/auth/verify-email?token=${verifyToken}`;
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@useaether.net";
+
+  if (resendKey) {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `Aether <${fromEmail}>`,
+        to: email,
+        subject: "Verify your Aether email",
+        html: `
+          <div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px;background:#09090b;color:#fff;border-radius:16px">
+            <div style="margin-bottom:32px">
+              <span style="font-size:24px;font-weight:900;color:#fff">Aether</span>
+            </div>
+            <h2 style="font-size:22px;font-weight:700;margin-bottom:12px">Verify your email</h2>
+            <p style="color:#a1a1aa;margin-bottom:28px;line-height:1.6">
+              You're almost in. Click the button below to verify your email and access your workspace.
+            </p>
+            <a href="${verifyUrl}"
+               style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-weight:700;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:15px">
+              Verify email →
+            </a>
+            <p style="color:#52525b;font-size:12px;margin-top:32px">
+              If you didn't create an Aether account, you can safely ignore this email.<br/>
+              Link: ${verifyUrl}
+            </p>
+          </div>
+        `,
+      }),
+    }).catch(() => null);
+  }
+
+  redirect("/signup?verified=pending");
 }
 
 export default async function SignupPage({
   searchParams,
-}: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+}: { searchParams: Promise<{ error?: string; verified?: string }> }) {
+  const { error, verified } = await searchParams;
+
+  if (verified === "pending") {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
+            style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+          </div>
+          <h1 className="text-3xl font-black text-white mb-3">Check your inbox</h1>
+          <p className="text-zinc-400 leading-relaxed mb-8">
+            We sent a verification link to your email. Click it to activate your account and access your workspace.
+          </p>
+          <p className="text-zinc-600 text-sm">
+            Didn&apos;t get it? Check your spam folder, or{" "}
+            <Link href="/signup" className="text-violet-400 hover:text-violet-300 transition-colors">try again</Link>.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex relative overflow-hidden">
@@ -73,7 +169,7 @@ export default async function SignupPage({
             { text: "Ava — AI SDR ready to deploy instantly", color: "#7c3aed" },
             { text: "Auto-post to Instagram, Facebook & X", color: "#e1306c" },
             { text: "Send 1,000+ personalized emails a day", color: "#0891b2" },
-            { text: "25 free runs · No credit card required", color: "#059669" },
+            { text: "10 free runs · No credit card required", color: "#059669" },
           ].map((item) => (
             <div key={item.text} className="flex items-center gap-3">
               <div className="h-5 w-5 rounded-full flex items-center justify-center shrink-0"
@@ -132,8 +228,10 @@ export default async function SignupPage({
 
             {/* Error */}
             {error && (
-              <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/08 px-4 py-3 text-sm text-red-300">
-                {error === "exists" ? "An account with that email already exists." : "Please enter a valid email and password (8+ chars)."}
+              <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error === "exists"    ? "An account with that email already exists." :
+                 error === "ratelimit" ? "Too many signups from this device. Try again in an hour." :
+                 "Please enter a valid email and password (8+ chars)."}
               </div>
             )}
 
@@ -169,7 +267,13 @@ export default async function SignupPage({
               <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors font-semibold">Sign in →</Link>
             </p>
 
-            <div className="mt-6 pt-5 border-t border-white/[0.04] flex items-center justify-center gap-2 text-zinc-700 text-xs">
+            <p className="mt-4 text-center text-xs text-zinc-700">
+              By signing up you agree to our{" "}
+              <Link href="/terms" className="hover:text-zinc-400 transition-colors underline">Terms of Service</Link>
+              {" "}and{" "}
+              <Link href="/privacy" className="hover:text-zinc-400 transition-colors underline">Privacy Policy</Link>.
+            </p>
+            <div className="mt-4 pt-5 border-t border-white/[0.04] flex items-center justify-center gap-2 text-zinc-700 text-xs">
               <Shield className="h-3.5 w-3.5" />
               256-bit SSL · SOC 2 · GDPR Compliant
             </div>
