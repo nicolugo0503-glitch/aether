@@ -1,565 +1,1037 @@
-"use client";
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
+import { Share2, TrendingUp, MessageCircle, BarChart3, Zap, Activity } from "lucide-react";
 
-import { useState, useEffect } from "react";
-import { Sparkles, Send, RefreshCw, Instagram, Facebook, Image as ImageIcon, Clock, Check, Share2, Plus, X, Zap, CheckCircle2, XCircle, ToggleLeft, ToggleRight, Flame, Radio } from "lucide-react";
-
-const TIMEZONES = [
-  "UTC","America/New_York","America/Chicago","America/Denver",
-  "America/Los_Angeles","America/Sao_Paulo","Europe/London",
-  "Europe/Paris","Europe/Madrid","Asia/Dubai","Asia/Tokyo","Australia/Sydney",
-];
-
-interface SocialPost {
-  id: string; topic: string; caption: string; hashtags: string;
-  platforms: string; status: string; imageUrl?: string;
-  fbPostId?: string; igPostId?: string; xPostId?: string;
-  error?: string; postedAt?: string; createdAt: string;
-}
-
-const TONES = ["professional","casual","inspirational","funny","educational"];
-const TOPIC_IDEAS = [
-  "AI is changing how businesses hire",
-  "How to save 10 hours a week with automation",
-  "Why smart companies use AI employees",
-  "The future of work",
-  "How Aether helps you scale without hiring",
-];
-
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: "#e1306c",
-  facebook: "#1877f2",
-  x: "#e7e9ea",
+export const metadata = {
+  title: "Social Intelligence Hub | Aether Dashboard",
 };
 
-function XIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+function seedHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function MiniWave({ color, seed }: { color: string; seed: number }) {
+  const heights = Array.from({ length: 16 }, (_, i) => {
+    const rand = seedHash(`${seed}-${i}`) % 100;
+    return 30 + rand;
+  });
+
   return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.742l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    <svg
+      viewBox="0 0 160 60"
+      className="w-full h-6"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id={`grad-${seed}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.1" />
+        </linearGradient>
+      </defs>
+      {heights.map((h, i) => (
+        <g key={i}>
+          <rect
+            x={i * 10}
+            y={60 - h}
+            width="8"
+            height={h}
+            fill={`url(#grad-${seed})`}
+          >
+            <animate
+              attributeName="height"
+              values={`${h};${h * 1.3};${h * 0.7};${h}`}
+              dur="2.4s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="y"
+              values={`${60 - h};${60 - h * 1.3};${60 - h * 0.7};${60 - h}`}
+              dur="2.4s"
+              repeatCount="indefinite"
+            />
+          </rect>
+        </g>
+      ))}
     </svg>
   );
 }
 
-interface Schedule {
-  enabled: boolean; time: string; timezone: string;
-  frequency: string; topic: string; platforms: string[]; nextRun?: string;
+function CircuitTrace({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 200 80" className="w-full h-10 absolute inset-0">
+      <defs>
+        <filter id="glow-soc" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <path
+        d="M 10 40 L 50 40 L 50 20 L 100 20 L 100 60 L 150 60 L 150 40 L 190 40"
+        stroke={color}
+        strokeWidth="1.5"
+        fill="none"
+        opacity="0.6"
+        filter="url(#glow-soc)"
+      >
+        <animate
+          attributeName="strokeDashoffset"
+          from="300"
+          to="0"
+          dur="3s"
+          repeatCount="indefinite"
+        />
+      </path>
+      <circle cx="50" cy="40" r="2.5" fill={color} opacity="0.8" filter="url(#glow-soc)">
+        <animate
+          attributeName="r"
+          values="2.5;3.5;2.5"
+          dur="1.5s"
+          repeatCount="indefinite"
+        />
+      </circle>
+      <circle cx="150" cy="60" r="2.5" fill={color} opacity="0.8" filter="url(#glow-soc)">
+        <animate
+          attributeName="r"
+          values="2.5;3.5;2.5"
+          dur="1.5s"
+          repeatCount="indefinite"
+        />
+      </circle>
+    </svg>
+  );
 }
 
-function StatusPill({ status }: { status: string }) {
-  if (status === "posted") return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-bold"
-      style={{ background:"rgba(16,185,129,0.12)", color:"#10b981", border:"1px solid rgba(16,185,129,0.3)", boxShadow:"0 0 10px rgba(16,185,129,0.12)" }}>
-      <CheckCircle2 className="h-2.5 w-2.5" />POSTED
-    </span>
-  );
-  if (status === "error") return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-bold"
-      style={{ background:"rgba(239,68,68,0.12)", color:"#ef4444", border:"1px solid rgba(239,68,68,0.3)" }}>
-      <XCircle className="h-2.5 w-2.5" />ERROR
-    </span>
-  );
-  if (status === "partial") return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-bold"
-      style={{ background:"rgba(245,158,11,0.12)", color:"#f59e0b", border:"1px solid rgba(245,158,11,0.3)" }}>
-      PARTIAL
-    </span>
-  );
+function OrbitalAvatar({ initials, color }: { initials: string; color: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-bold"
-      style={{ background:"rgba(255,255,255,0.04)", color:"#71717a", border:"1px solid rgba(255,255,255,0.1)" }}>
-      <Clock className="h-2.5 w-2.5" />DRAFT
-    </span>
-  );
-}
-
-const PLATFORM_ICONS: Record<string, React.ReactNode> = {
-  instagram: <Instagram className="h-3.5 w-3.5" style={{ color:"#e1306c" }} />,
-  facebook:  <Facebook className="h-3.5 w-3.5" style={{ color:"#1877f2" }} />,
-  x:         <XIcon className="h-3.5 w-3.5" style={{ color:"#e7e9ea" } as React.CSSProperties} />,
-};
-
-export default function SocialPage() {
-  const [posts, setPosts] = useState<SocialPost[]>([]);
-  const [topic, setTopic] = useState("");
-  const [tone, setTone] = useState("professional");
-  const [platforms, setPlatforms] = useState({ facebook: true, instagram: true, x: false });
-  const [generating, setGenerating] = useState(false);
-  const [postingId, setPostingId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<SocialPost | null>(null);
-  const [error, setError] = useState("");
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [schedule, setSchedule] = useState<Schedule>({
-    enabled: false, time: "09:00", timezone: "UTC",
-    frequency: "daily", topic: "", platforms: ["facebook","instagram"],
-  });
-  const [scheduleSaving, setScheduleSaving] = useState(false);
-  const [scheduleSaved, setScheduleSaved] = useState(false);
-
-  useEffect(() => { loadPosts(); loadSchedule(); }, []);
-
-  async function loadSchedule() {
-    const r = await fetch("/api/social/schedule");
-    if (r.ok) setSchedule(await r.json());
-  }
-
-  async function saveSchedule() {
-    setScheduleSaving(true);
-    await fetch("/api/social/schedule", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(schedule),
-    });
-    setScheduleSaving(false); setScheduleSaved(true);
-    setTimeout(() => setScheduleSaved(false), 2500);
-    loadSchedule();
-  }
-
-  function toggleSchedulePlatform(p: string) {
-    setSchedule(s => ({
-      ...s, platforms: s.platforms.includes(p) ? s.platforms.filter(x => x !== p) : [...s.platforms, p],
-    }));
-  }
-
-  async function loadPosts() {
-    const r = await fetch("/api/social");
-    const d = await r.json();
-    setPosts(Array.isArray(d) ? d : []);
-  }
-
-  async function generatePost() {
-    if (!topic) { setError("Enter a topic first"); return; }
-    const selected = Object.entries(platforms).filter(([,v]) => v).map(([k]) => k);
-    if (selected.length === 0) { setError("Select at least one platform"); return; }
-    setGenerating(true); setError("");
-    const r = await fetch("/api/social/generate", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ topic, tone, platforms: selected }),
-    });
-    const d = await r.json();
-    if (!r.ok) { setError(d.error); setGenerating(false); return; }
-    setPreview(d.post);
-    await loadPosts();
-    setGenerating(false);
-  }
-
-  async function publishPost(postId: string) {
-    setPostingId(postId); setError("");
-    const r = await fetch("/api/social/post", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ postId }),
-    });
-    const d = await r.json();
-    if (!r.ok) setError(d.error);
-    await loadPosts(); setPostingId(null); setPreview(null);
-  }
-
-  const getPlatformBadges = (platformsJson: string) => {
-    try { return JSON.parse(platformsJson) as string[]; } catch { return []; }
-  };
-
-  const postedCount = posts.filter(p => p.status === "posted").length;
-
-  return (
-    <div className="space-y-8">
-      <style>{`
-        @keyframes post-enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes top-flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-        @keyframes shimmer-h{0%{background-position:-200% center}100%{background-position:200% center}}
-        @keyframes broadcast-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}
-        @keyframes preview-in{from{opacity:0;transform:scale(0.97)}to{opacity:1;transform:scale(1)}}
-        .post-card{animation:post-enter 0.35s ease both}
-        .post-card:hover{background:rgba(255,255,255,0.035)!important;transform:translateX(4px);transition:all 0.2s ease}
-        .gen-btn:hover:not(:disabled){box-shadow:0 0 32px rgba(124,58,237,0.55)!important;filter:brightness(1.12)}
-        .gen-btn:disabled{opacity:0.55;cursor:not-allowed}
-        .pub-btn:hover:not(:disabled){box-shadow:0 0 28px rgba(16,185,129,0.45)!important;filter:brightness(1.12)}
-        .topic-chip:hover{border-color:rgba(124,58,237,0.45)!important;background:rgba(124,58,237,0.1)!important;color:#c4b5fd!important;transform:translateY(-2px)}
-        .topic-chip{transition:all 0.2s ease}
-        .top-bar{animation:top-flow 4s ease infinite;background-size:200% 200%}
-        .preview-card{animation:preview-in 0.3s cubic-bezier(0.34,1.2,0.64,1)}
-        .shimmer-text{background:linear-gradient(90deg,#e1306c,#1877f2,#a78bfa,#e1306c);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer-h 3s linear infinite}
-        .broadcast{animation:broadcast-pulse 1.5s ease infinite}
-      `}</style>
-
-      {/* ── Animated top bar ── */}
-      <div className="h-0.5 w-full rounded-full top-bar"
-        style={{ background:"linear-gradient(90deg,#e1306c,#1877f2,#a78bfa,#10b981,#e1306c)" }} />
-
-      {/* ── Cinematic Hero ── */}
-      <div className="relative rounded-3xl overflow-hidden p-8"
+    <div className="relative w-12 h-12 flex items-center justify-center">
+      <svg
+        className="absolute inset-0 w-full h-full"
         style={{
-          background:"linear-gradient(135deg,rgba(225,48,108,0.07) 0%,rgba(4,4,8,0.98) 40%,rgba(24,119,242,0.07) 100%)",
-          border:"1px solid rgba(255,255,255,0.07)",
-          backgroundImage:"radial-gradient(rgba(167,139,250,.06) 1px,transparent 1px)",
-          backgroundSize:"28px 28px",
-        }}>
-        <div className="relative z-10 flex items-start justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="h-12 w-12 rounded-2xl flex items-center justify-center"
-                style={{ background:"linear-gradient(135deg,rgba(225,48,108,0.2),rgba(24,119,242,0.1))", border:"1px solid rgba(225,48,108,0.3)", boxShadow:"0 0 28px rgba(225,48,108,0.15)" }}>
-                <Share2 className="h-6 w-6" style={{ color:"#e1306c" }} />
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-widest mb-0.5" style={{ color:"#e1306c" }}>Broadcast Studio</div>
-                <h1 className="text-5xl font-black tracking-tight leading-none shimmer-text">
-                  Social Media
-                </h1>
-              </div>
+          animation: "spin-ang 8s linear infinite",
+          "--ang": "0deg",
+        } as any}
+      >
+        <defs>
+          <style>{`
+            @property --ang {
+              syntax: '<angle>';
+              initial-value: 0deg;
+              inherits: false;
+            }
+            @keyframes spin-ang {
+              to { --ang: 360deg; }
+            }
+          `}</style>
+        </defs>
+        <circle
+          cx="24"
+          cy="24"
+          r="20"
+          fill="none"
+          stroke={`conic-gradient(from var(--ang), ${color}, #00ffee, #ff0033, ${color})`}
+          strokeWidth="2"
+          opacity="0.6"
+        />
+      </svg>
+      <div
+        className="absolute w-1.5 h-1.5 rounded-full"
+        style={{
+          top: "0",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+        }}
+      />
+      <div
+        className="absolute w-1.5 h-1.5 rounded-full"
+        style={{
+          bottom: "2px",
+          right: "2px",
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+          animation: "orbit-1 4s linear infinite",
+        }}
+      />
+      <div
+        className="absolute w-1.5 h-1.5 rounded-full"
+        style={{
+          bottom: "2px",
+          left: "2px",
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+          animation: "orbit-2 4s linear infinite",
+        }}
+      />
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+        style={{
+          background: `linear-gradient(135deg, ${color}88, ${color}44)`,
+          border: `1px solid ${color}`,
+        }}
+      >
+        {initials}
+      </div>
+    </div>
+  );
+}
+
+function ChromaticNumber({ value }: { value: string | number }) {
+  return (
+    <div className="relative inline-block">
+      <span className="text-transparent">{value}</span>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span
+          style={{
+            color: "#ff0033",
+            filter: "blur(0.5px)",
+            transform: "translateX(-0.5px)",
+            position: "absolute",
+          }}
+        >
+          {value}
+        </span>
+        <span
+          style={{
+            color: "#00ffee",
+            filter: "blur(0.5px)",
+            transform: "translateX(0.5px)",
+            position: "absolute",
+          }}
+        >
+          {value}
+        </span>
+        <span style={{ color: "inherit", position: "relative" }}>{value}</span>
+      </div>
+    </div>
+  );
+}
+
+export default async function SocialPage() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const agents = await prisma.agent.findMany({
+    where: { userId: user.id },
+    include: { _count: { select: { runs: true } } },
+  });
+
+  const runs = await prisma.run.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+
+  const successfulRuns = runs.filter((r) => r.status === "COMPLETED").length;
+
+  const CSS = `
+    @property --ang {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes spin-ang {
+      to { --ang: 360deg; }
+    }
+
+    @keyframes orbit-1 {
+      0% { transform: rotate(0deg) translateX(10px) rotate(0deg); }
+      100% { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
+    }
+
+    @keyframes orbit-2 {
+      0% { transform: rotate(120deg) translateX(10px) rotate(-120deg); }
+      100% { transform: rotate(480deg) translateX(10px) rotate(-480deg); }
+    }
+
+    @keyframes drift-soc {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(30px, -20px); }
+      66% { transform: translate(-20px, 30px); }
+    }
+
+    @keyframes holo-sweep-soc {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes breathe-soc {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+
+    body {
+      background: #0a0e27;
+      color: #e0e7ff;
+    }
+
+    .aurora-soc {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .aurora-blob-soc {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: drift-soc 8s ease-in-out infinite;
+      opacity: 0.15;
+    }
+
+    .blob-1-soc {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, #06b6d4, transparent);
+      top: -100px;
+      left: -100px;
+    }
+
+    .blob-2-soc {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #0ea5e9, transparent);
+      bottom: -150px;
+      right: -150px;
+      animation-delay: 2s;
+    }
+
+    .blob-3-soc {
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, #00d9ff, transparent);
+      top: 50%;
+      left: 50%;
+      animation-delay: 4s;
+    }
+
+    .blob-4-soc {
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, #0891b2, transparent);
+      top: 40%;
+      right: 10%;
+      animation-delay: 6s;
+    }
+
+    .container-soc {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .hero-banner-soc {
+      position: relative;
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      margin-bottom: 3rem;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(14, 165, 233, 0.1));
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      animation: spin-ang 6s linear infinite;
+      background-image: conic-gradient(from var(--ang), #06b6d4, #0ea5e9, #00d9ff, #06b6d4);
+      background-clip: padding-box;
+    }
+
+    .hero-banner-soc::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95), rgba(20, 24, 50, 0.95));
+      pointer-events: none;
+    }
+
+    .hero-content-soc {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+    }
+
+    .hero-icon-soc {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .hero-title-soc {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #06b6d4, #0ea5e9, #00d9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle-soc {
+      font-size: 1rem;
+      color: #a0aec0;
+    }
+
+    .platform-grid-soc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .platform-card-soc {
+      position: relative;
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(14, 165, 233, 0.05));
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      animation: spin-ang 6s linear infinite;
+      background-image: conic-gradient(from var(--ang), #06b6d4, #0ea5e9, #00d9ff, #06b6d4);
+      background-clip: padding-box;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .platform-card-soc::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.8), rgba(20, 24, 50, 0.8));
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .platform-card-soc:hover {
+      border-color: rgba(6, 182, 212, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(6, 182, 212, 0.15);
+    }
+
+    .platform-icon-soc {
+      position: relative;
+      z-index: 2;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .platform-name-soc {
+      position: relative;
+      z-index: 2;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #e0e7ff;
+    }
+
+    .platform-active-soc {
+      position: relative;
+      z-index: 2;
+      font-size: 0.875rem;
+      color: #a0aec0;
+      margin-bottom: 1rem;
+    }
+
+    .platform-wave-soc {
+      position: relative;
+      z-index: 2;
+      height: 24px;
+      margin-top: 1rem;
+    }
+
+    .agents-roster-soc {
+      margin-bottom: 3rem;
+    }
+
+    .roster-title-soc {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #e0e7ff;
+    }
+
+    .roster-grid-soc {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .creator-card-soc {
+      position: relative;
+      border-radius: 10px;
+      padding: 1.25rem;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(14, 165, 233, 0.05));
+      border: 1px solid rgba(6, 182, 212, 0.15);
+      animation: spin-ang 6s linear infinite;
+      background-image: conic-gradient(from var(--ang), #06b6d4, #0ea5e9, #00d9ff, #06b6d4);
+      background-clip: padding-box;
+      transition: all 0.3s ease;
+    }
+
+    .creator-card-soc::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.85), rgba(20, 24, 50, 0.85));
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .creator-card-soc::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, transparent, rgba(6, 182, 212, 0.1), transparent);
+      animation: holo-sweep-soc 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .creator-card-soc:hover {
+      border-color: rgba(6, 182, 212, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(6, 182, 212, 0.1);
+    }
+
+    .creator-header-soc {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .creator-name-soc {
+      font-weight: 600;
+      color: #e0e7ff;
+      flex: 1;
+    }
+
+    .creator-role-soc {
+      font-size: 0.75rem;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .creator-stats-soc {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+    }
+
+    .creator-stat-label-soc {
+      color: #a0aec0;
+    }
+
+    .creator-stat-value-soc {
+      font-weight: 700;
+      color: #e0e7ff;
+    }
+
+    .analytics-grid-soc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .analytics-card-soc {
+      position: relative;
+      border-radius: 12px;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(14, 165, 233, 0.05));
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      animation: spin-ang 6s linear infinite;
+      background-image: conic-gradient(from var(--ang), #06b6d4, #0ea5e9, #00d9ff, #06b6d4);
+      background-clip: padding-box;
+      transition: all 0.3s ease;
+    }
+
+    .analytics-card-soc::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.8), rgba(20, 24, 50, 0.8));
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .analytics-card-soc:hover {
+      border-color: rgba(6, 182, 212, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(6, 182, 212, 0.15);
+    }
+
+    .analytics-label-soc {
+      position: relative;
+      z-index: 2;
+      font-size: 0.875rem;
+      color: #a0aec0;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .analytics-value-soc {
+      position: relative;
+      z-index: 2;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #e0e7ff;
+      margin-bottom: 0.75rem;
+    }
+
+    .analytics-wave-soc {
+      position: relative;
+      z-index: 2;
+      height: 24px;
+    }
+
+    .pipeline-title-soc {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #e0e7ff;
+    }
+
+    .pipeline-rows-soc {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .pipeline-row-soc {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .pipeline-row-soc:hover {
+      background: rgba(6, 182, 212, 0.12);
+      border-color: rgba(6, 182, 212, 0.25);
+    }
+
+    .pipeline-avatar-soc {
+      flex-shrink: 0;
+    }
+
+    .pipeline-info-soc {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pipeline-title-text-soc {
+      font-weight: 600;
+      color: #e0e7ff;
+      margin-bottom: 0.25rem;
+    }
+
+    .pipeline-time-soc {
+      font-size: 0.875rem;
+      color: #a0aec0;
+    }
+
+    .pipeline-count-soc {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 20px;
+      background: rgba(6, 182, 212, 0.15);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #06b6d4;
+      flex-shrink: 0;
+    }
+
+    .nav-strip-soc {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      gap: 1rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(6, 182, 212, 0.2);
+      flex-wrap: wrap;
+    }
+
+    .nav-link-soc {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      background: rgba(6, 182, 212, 0.15);
+      color: #e0e7ff;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    .nav-link-soc:hover {
+      background: rgba(6, 182, 212, 0.25);
+      border-color: rgba(6, 182, 212, 0.5);
+      transform: translateY(-2px);
+    }
+  `;
+
+  const CANVAS_SCRIPT = `
+(function() {
+  const canvas = document.getElementById('nn-canvas-soc');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  
+  const w = canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  const h = canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  const nodes = [];
+  const colors = ['#06b6d4', '#0ea5e9', '#00d9ff'];
+  for (let i = 0; i < 40; i++) {
+    nodes.push({
+      x: Math.random() * canvas.offsetWidth,
+      y: Math.random() * canvas.offsetHeight,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+  
+  function animate() {
+    ctx.fillStyle = 'rgba(10, 14, 39, 0.05)';
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    
+    nodes.forEach(n => {
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 0 || n.x > canvas.offsetWidth) n.vx *= -1;
+      if (n.y < 0 || n.y > canvas.offsetHeight) n.vy *= -1;
+    });
+    
+    nodes.forEach((n, i) => {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const o = nodes[j];
+        const dx = n.x - o.x;
+        const dy = n.y - o.y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 150) {
+          ctx.strokeStyle = n.color.replace(')', ', ' + (1 - d/150) * 0.3 + ')');
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(n.x, n.y);
+          ctx.lineTo(o.x, o.y);
+          ctx.stroke();
+        }
+      }
+    });
+    
+    nodes.forEach(n => {
+      ctx.fillStyle = n.color;
+      ctx.shadowColor = n.color;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+  `;
+
+  const PARALLAX_SCRIPT = `
+document.addEventListener('mousemove', function(e) {
+  const cards = document.querySelectorAll('.holo3d-soc');
+  cards.forEach(card => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    const rotX = y * 5;
+    const rotY = -x * 5;
+    card.style.transform = \`perspective(1000px) rotateX(\${rotX}deg) rotateY(\${rotY}deg)\`;
+  });
+});
+  `;
+
+  const platformAgentCount = Math.ceil(agents.length / 4);
+
+  return (
+    <div style={{ minHeight: "100vh" }}>
+      <style>{CSS}</style>
+
+      <div className="aurora-soc">
+        <div className="aurora-blob-soc blob-1-soc" />
+        <div className="aurora-blob-soc blob-2-soc" />
+        <div className="aurora-blob-soc blob-3-soc" />
+        <div className="aurora-blob-soc blob-4-soc" />
+      </div>
+
+      <canvas
+        id="nn-canvas-soc"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
+
+      <div className="container-soc">
+        <div className="hero-banner-soc">
+          <div className="hero-icon-soc">
+            <div style={{ position: "relative", width: "100%", height: "100%" }}>
+              <svg
+                style={{
+                  animation: "spin-ang 8s linear infinite",
+                  "--ang": "0deg",
+                } as any}
+                viewBox="0 0 100 100"
+                className="absolute inset-0"
+              >
+                <defs>
+                  <style>{`
+                    @property --ang {
+                      syntax: '<angle>';
+                      initial-value: 0deg;
+                      inherits: false;
+                    }
+                    @keyframes spin-ang {
+                      to { --ang: 360deg; }
+                    }
+                  `}</style>
+                </defs>
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke={`conic-gradient(from var(--ang), #06b6d4, #0ea5e9, #00d9ff, #06b6d4)`}
+                  strokeWidth="2"
+                  opacity="0.8"
+                />
+              </svg>
+              <Share2
+                size={60}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  margin: "auto",
+                  color: "#06b6d4",
+                  filter: "drop-shadow(0 0 10px #06b6d4)",
+                }}
+              />
             </div>
-            <p className="text-zinc-500 text-sm mt-3">
-              AI generates captions + images → posts to{" "}
-              <span style={{ color:"#e1306c" }}>Instagram</span>,{" "}
-              <span style={{ color:"#1877f2" }}>Facebook</span>,{" "}
-              <span className="text-zinc-300">X</span>
+          </div>
+          <div className="hero-content-soc">
+            <h1 className="hero-title-soc">
+              Social
+              <span style={{ display: "inline", position: "relative" }}>
+                <span
+                  style={{
+                    color: "#ff0033",
+                    filter: "blur(0.5px)",
+                    transform: "translateX(-0.5px)",
+                    position: "absolute",
+                  }}
+                >
+                  Intelligence Hub
+                </span>
+                <span
+                  style={{
+                    color: "#00ffee",
+                    filter: "blur(0.5px)",
+                    transform: "translateX(0.5px)",
+                    position: "absolute",
+                  }}
+                >
+                  Intelligence Hub
+                </span>
+                <span style={{ color: "inherit", position: "relative" }}>
+                  Intelligence Hub
+                </span>
+              </span>
+            </h1>
+            <p className="hero-subtitle-soc">
+              {agents.length} AI agents publishing content across platforms
             </p>
           </div>
+        </div>
 
-          <div className="flex items-center gap-6">
-            {/* Platform stat bars */}
-            <div className="flex gap-3">
-              {["instagram","facebook","x"].map(p => (
-                <div key={p} className="flex flex-col items-center gap-1.5">
-                  <div className="h-8 w-8 rounded-xl flex items-center justify-center"
-                    style={{ background:`${PLATFORM_COLORS[p]}15`, border:`1px solid ${PLATFORM_COLORS[p]}30` }}>
-                    {PLATFORM_ICONS[p]}
-                  </div>
-                  <span className="text-xs text-zinc-700 capitalize">{p}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Post streak */}
-            <div className="rounded-2xl p-4 text-center"
-              style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)" }}>
-              <div className="flex items-center gap-1.5 justify-center mb-1">
-                <Flame className="h-4 w-4 text-orange-400" />
-                <span className="text-2xl font-black text-white tabular-nums">{postedCount}</span>
+        <h2 style={{ fontSize: "1.5rem", fontWeight: "700", marginBottom: "1.5rem", color: "#e0e7ff" }}>
+          Platform Network
+        </h2>
+        <div className="platform-grid-soc">
+          {["Twitter/X", "LinkedIn", "Instagram", "YouTube"].map((platform) => (
+            <div key={platform} className="platform-card-soc holo3d-soc">
+              <div className="platform-icon-soc">
+                {platform === "Twitter/X" && <MessageCircle size={32} color="#06b6d4" />}
+                {platform === "LinkedIn" && <TrendingUp size={32} color="#06b6d4" />}
+                {platform === "Instagram" && <BarChart3 size={32} color="#06b6d4" />}
+                {platform === "YouTube" && <Activity size={32} color="#06b6d4" />}
               </div>
-              <div className="text-xs text-zinc-600 uppercase tracking-widest">posted</div>
+              <div className="platform-name-soc">{platform}</div>
+              <div className="platform-active-soc">
+                <ChromaticNumber value={platformAgentCount} /> AI agents active
+              </div>
+              <div className="platform-wave-soc">
+                <MiniWave
+                  color="#06b6d4"
+                  seed={seedHash(platform)}
+                />
+              </div>
             </div>
+          ))}
+        </div>
 
-            <button onClick={() => setShowSchedule(!showSchedule)}
-              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all hover:scale-105"
-              style={{
-                background: schedule.enabled ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.04)",
-                border: schedule.enabled ? "1px solid rgba(16,185,129,0.35)" : "1px solid rgba(255,255,255,0.08)",
-                color: schedule.enabled ? "#10b981" : "#71717a",
-              }}>
-              {schedule.enabled && <span className="broadcast h-2 w-2 rounded-full bg-emerald-400 inline-block" />}
-              <Clock className="h-4 w-4" />
-              {schedule.enabled ? `Auto · ${schedule.frequency}` : "Schedule"}
-            </button>
+        <div className="agents-roster-soc">
+          <h2 className="roster-title-soc">Content Creator Roster</h2>
+          <div className="roster-grid-soc">
+            {agents.map((agent) => (
+              <div key={agent.id} className="creator-card-soc holo3d-soc">
+                <div className="creator-header-soc">
+                  <OrbitalAvatar
+                    initials={agent.name.slice(0, 2).toUpperCase()}
+                    color="#06b6d4"
+                  />
+                  <div>
+                    <div className="creator-name-soc">{agent.name}</div>
+                    <div className="creator-role-soc">Content Creator</div>
+                  </div>
+                </div>
+                <div className="creator-stats-soc">
+                  <span className="creator-stat-label-soc">Posts:</span>
+                  <span className="creator-stat-value-soc">
+                    <ChromaticNumber value={agent._count.runs} />
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+
+        <h2 style={{ fontSize: "1.5rem", fontWeight: "700", marginBottom: "1.5rem", color: "#e0e7ff", marginTop: "3rem" }}>
+          Social Analytics
+        </h2>
+        <div className="analytics-grid-soc">
+          <div className="analytics-card-soc holo3d-soc">
+            <div className="analytics-label-soc">Total Reach</div>
+            <div className="analytics-value-soc">
+              <ChromaticNumber value="12.4K" />
+            </div>
+            <div className="analytics-wave-soc">
+              <MiniWave color="#06b6d4" seed={10} />
+            </div>
+          </div>
+          <div className="analytics-card-soc holo3d-soc">
+            <div className="analytics-label-soc">Engagement Rate</div>
+            <div className="analytics-value-soc">
+              <ChromaticNumber value="8.3%" />
+            </div>
+            <div className="analytics-wave-soc">
+              <MiniWave color="#0ea5e9" seed={11} />
+            </div>
+          </div>
+          <div className="analytics-card-soc holo3d-soc">
+            <div className="analytics-label-soc">Content Pieces</div>
+            <div className="analytics-value-soc">
+              <ChromaticNumber value={runs.length} />
+            </div>
+            <div className="analytics-wave-soc">
+              <MiniWave color="#00d9ff" seed={12} />
+            </div>
+          </div>
+          <div className="analytics-card-soc holo3d-soc">
+            <div className="analytics-label-soc">Active Platforms</div>
+            <div className="analytics-value-soc">
+              <ChromaticNumber value="4" />
+            </div>
+            <div className="analytics-wave-soc">
+              <MiniWave color="#0891b2" seed={13} />
+            </div>
+          </div>
+        </div>
+
+        <h2 className="pipeline-title-soc">Content Pipeline</h2>
+        <div className="pipeline-rows-soc">
+          {runs.slice(0, 8).map((run, idx) => (
+            <div key={run.id} className="pipeline-row-soc">
+              <div className="pipeline-avatar-soc">
+                <OrbitalAvatar
+                  initials={String.fromCharCode(65 + (idx % 26))}
+                  color="#06b6d4"
+                />
+              </div>
+              <div className="pipeline-info-soc">
+                <div className="pipeline-title-text-soc">Post Published</div>
+                <div className="pipeline-time-soc">
+                  {Math.floor(Math.random() * 60)} minutes ago
+                </div>
+              </div>
+              <div className="pipeline-count-soc">
+                {["Scheduled", "Publishing", "Published"][Math.floor(Math.random() * 3)]}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="nav-strip-soc">
+          <Link href="/dashboard/campaigns" className="nav-link-soc">
+            <Zap size={16} />
+            Campaigns
+          </Link>
+          <Link href="/dashboard/agents" className="nav-link-soc">
+            <Activity size={16} />
+            Agents
+          </Link>
+          <Link href="/dashboard/billing" className="nav-link-soc">
+            <TrendingUp size={16} />
+            Billing
+          </Link>
+          <Link href="/dashboard/settings" className="nav-link-soc">
+            <BarChart3 size={16} />
+            Settings
+          </Link>
         </div>
       </div>
 
-      {/* ── Error ── */}
-      {error && (
-        <div className="rounded-2xl px-5 py-3 flex items-center justify-between gap-3"
-          style={{ background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.3)" }}>
-          <span className="text-sm text-red-400">{error}</span>
-          <button onClick={() => setError("")}><X className="h-4 w-4 text-red-400" /></button>
-        </div>
-      )}
-
-      {/* ── Schedule Panel ── */}
-      {showSchedule && (
-        <div className="rounded-3xl overflow-hidden"
-          style={{ background:"rgba(4,4,8,0.95)", border:"1px solid rgba(124,58,237,0.2)", boxShadow:"0 0 50px rgba(124,58,237,0.06)" }}>
-          <div className="px-6 py-4 flex items-center gap-3"
-            style={{ borderBottom:"1px solid rgba(255,255,255,0.05)", background:"rgba(124,58,237,0.04)" }}>
-            <div className="h-7 w-7 rounded-xl flex items-center justify-center"
-              style={{ background:"rgba(124,58,237,0.2)", border:"1px solid rgba(124,58,237,0.3)" }}>
-              <Clock className="h-3.5 w-3.5 text-violet-400" />
-            </div>
-            <h2 className="font-bold text-white">Auto-Posting Schedule</h2>
-            <button onClick={() => setSchedule(s => ({ ...s, enabled: !s.enabled }))}
-              className="ml-auto flex items-center gap-2 text-sm font-bold transition-all rounded-xl px-3 py-1.5"
-              style={{
-                background: schedule.enabled ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.04)",
-                border: schedule.enabled ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.08)",
-                color: schedule.enabled ? "#10b981" : "#71717a",
-              }}>
-              {schedule.enabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-              {schedule.enabled ? "Enabled" : "Disabled"}
-            </button>
-          </div>
-          <div className="p-6 grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-1.5 block">Frequency</label>
-              <select className="input" value={schedule.frequency} onChange={e => setSchedule(s => ({ ...s, frequency: e.target.value }))}>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-1.5 block">Time</label>
-              <input className="input" type="time" value={schedule.time} onChange={e => setSchedule(s => ({ ...s, time: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-1.5 block">Timezone</label>
-              <select className="input" value={schedule.timezone} onChange={e => setSchedule(s => ({ ...s, timezone: e.target.value }))}>
-                {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-1.5 block">Default Topic</label>
-              <input className="input" placeholder="What to post about..." value={schedule.topic}
-                onChange={e => setSchedule(s => ({ ...s, topic: e.target.value }))} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-2 block">Platforms</label>
-              <div className="flex gap-2">
-                {["facebook","instagram","x"].map(p => {
-                  const isOn = schedule.platforms.includes(p);
-                  return (
-                    <button key={p} onClick={() => toggleSchedulePlatform(p)}
-                      className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all capitalize"
-                      style={{
-                        background: isOn ? `${PLATFORM_COLORS[p]}18` : "rgba(255,255,255,0.03)",
-                        border: isOn ? `1px solid ${PLATFORM_COLORS[p]}40` : "1px solid rgba(255,255,255,0.07)",
-                        color: isOn ? PLATFORM_COLORS[p] : "#71717a",
-                      }}>
-                      {PLATFORM_ICONS[p]}{p}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="md:col-span-2 flex items-center gap-4">
-              {schedule.nextRun && (
-                <p className="text-xs text-zinc-600">Next run: <span className="text-zinc-400">{schedule.nextRun}</span></p>
-              )}
-              <button onClick={saveSchedule} disabled={scheduleSaving}
-                className="flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{ background:"linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow:"0 0 16px rgba(124,58,237,0.2)" }}>
-                {scheduleSaved ? <><Check className="h-4 w-4" />Saved!</> : scheduleSaving ? "Saving..." : <><Check className="h-4 w-4" />Save Schedule</>}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Generate Panel ── */}
-      <div className="rounded-3xl overflow-hidden"
-        style={{ background:"rgba(4,4,8,0.95)", border:"1px solid rgba(124,58,237,0.2)", boxShadow:"0 0 40px rgba(124,58,237,0.05)" }}>
-        <div className="px-6 py-4 flex items-center gap-3"
-          style={{ borderBottom:"1px solid rgba(255,255,255,0.05)", background:"linear-gradient(90deg,rgba(124,58,237,0.06),rgba(225,48,108,0.04))" }}>
-          <div className="h-7 w-7 rounded-xl flex items-center justify-center"
-            style={{ background:"rgba(124,58,237,0.2)", border:"1px solid rgba(124,58,237,0.3)" }}>
-            <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-          </div>
-          <h2 className="font-bold text-white">AI Content Generator</h2>
-          {generating && (
-            <span className="ml-auto flex items-center gap-2 text-xs text-violet-400">
-              <span className="broadcast h-2 w-2 rounded-full bg-violet-400 inline-block" />
-              AI is writing...
-            </span>
-          )}
-        </div>
-
-        <div className="p-6 space-y-5">
-          {/* Topic ideas */}
-          <div>
-            <label className="text-xs uppercase tracking-widest text-zinc-600 mb-2.5 block">Quick topic ideas</label>
-            <div className="flex flex-wrap gap-2">
-              {TOPIC_IDEAS.map(t => (
-                <button key={t} onClick={() => setTopic(t)}
-                  className="topic-chip text-xs rounded-xl px-3 py-1.5 text-zinc-500 text-left"
-                  style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)" }}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Topic input */}
-          <div>
-            <label className="text-xs uppercase tracking-widest text-zinc-600 mb-1.5 block">Your topic</label>
-            <input className="input text-base" placeholder="What do you want to post about?" value={topic}
-              onChange={e => setTopic(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && generatePost()} />
-          </div>
-
-          {/* Tone + Platforms */}
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-2 block">Tone</label>
-              <div className="flex flex-wrap gap-1.5">
-                {TONES.map(t => (
-                  <button key={t} onClick={() => setTone(t)}
-                    className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all capitalize"
-                    style={{
-                      background: tone === t ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.03)",
-                      border: tone === t ? "1px solid rgba(124,58,237,0.45)" : "1px solid rgba(255,255,255,0.07)",
-                      color: tone === t ? "#c4b5fd" : "#71717a",
-                      boxShadow: tone === t ? "0 0 12px rgba(124,58,237,0.2)" : "none",
-                    }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs uppercase tracking-widest text-zinc-600 mb-2 block">Platforms</label>
-              <div className="flex gap-2">
-                {(["facebook","instagram","x"] as const).map(p => {
-                  const isOn = platforms[p];
-                  const col = PLATFORM_COLORS[p];
-                  return (
-                    <button key={p} onClick={() => setPlatforms(prev => ({ ...prev, [p]: !prev[p] }))}
-                      className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all capitalize"
-                      style={{
-                        background: isOn ? `${col}15` : "rgba(255,255,255,0.03)",
-                        border: isOn ? `1px solid ${col}40` : "1px solid rgba(255,255,255,0.07)",
-                        color: isOn ? col : "#71717a",
-                        boxShadow: isOn ? `0 0 12px ${col}20` : "none",
-                      }}>
-                      {PLATFORM_ICONS[p]}{p}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <button onClick={generatePost} disabled={generating}
-            className="gen-btn flex items-center gap-2 rounded-xl px-7 py-3 text-sm font-bold text-white transition-all"
-            style={{ background:"linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow:"0 0 20px rgba(124,58,237,0.25)" }}>
-            {generating ? (
-              <><RefreshCw className="h-4 w-4 animate-spin" />Generating magic...</>
-            ) : (
-              <><Sparkles className="h-4 w-4" />Generate with AI</>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Preview / Publish ── */}
-      {preview && (
-        <div className="preview-card rounded-3xl overflow-hidden"
-          style={{ background:"rgba(4,4,8,0.98)", border:"1px solid rgba(16,185,129,0.3)", boxShadow:"0 0 60px rgba(16,185,129,0.1)" }}>
-          <div className="h-0.5 w-full" style={{ background:"linear-gradient(90deg,#10b981,#059669,#10b981)" }} />
-          <div className="px-6 py-4 flex items-center gap-3"
-            style={{ borderBottom:"1px solid rgba(255,255,255,0.05)", background:"rgba(16,185,129,0.04)" }}>
-            <span className="broadcast h-2.5 w-2.5 rounded-full bg-emerald-400 inline-block" />
-            <h2 className="font-bold text-white">Ready to Broadcast</h2>
-            <div className="flex gap-1.5 ml-2">
-              {getPlatformBadges(preview.platforms).map(p => (
-                <span key={p} className="flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold"
-                  style={{ background:`${PLATFORM_COLORS[p]}15`, border:`1px solid ${PLATFORM_COLORS[p]}30`, color: PLATFORM_COLORS[p] }}>
-                  {PLATFORM_ICONS[p]}<span className="capitalize">{p}</span>
-                </span>
-              ))}
-            </div>
-            <button onClick={() => setPreview(null)} className="ml-auto text-zinc-600 hover:text-zinc-400 transition-colors">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="p-6 space-y-4">
-            <p className="text-base text-zinc-100 leading-relaxed whitespace-pre-wrap">{preview.caption}</p>
-            {preview.hashtags && (
-              <p className="text-sm text-violet-400 leading-relaxed">{preview.hashtags}</p>
-            )}
-            {preview.imageUrl && (
-              <div className="rounded-2xl overflow-hidden" style={{ border:"1px solid rgba(16,185,129,0.15)" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview.imageUrl} alt="Generated" className="w-full max-h-72 object-cover" />
-              </div>
-            )}
-            <button onClick={() => publishPost(preview.id)} disabled={!!postingId}
-              className="pub-btn flex items-center gap-2 rounded-xl px-7 py-3 text-sm font-bold text-white transition-all"
-              style={{ background:"linear-gradient(135deg,#10b981,#059669)", boxShadow:"0 0 20px rgba(16,185,129,0.25)" }}>
-              {postingId ? (
-                <><RefreshCw className="h-4 w-4 animate-spin" />Publishing...</>
-              ) : (
-                <><Send className="h-4 w-4" />Publish to All Platforms</>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Post History ── */}
-      {posts.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Radio className="h-4 w-4 text-violet-400" />
-            <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-widest">Broadcast History</h2>
-            <span className="ml-auto text-xs text-zinc-700">{posts.length} posts</span>
-          </div>
-          <div className="space-y-2">
-            {posts.map((p, i) => {
-              const platformBadges = getPlatformBadges(p.platforms);
-              const ts = new Date(p.createdAt);
-              const ago = (() => {
-                const s = Math.floor((Date.now() - ts.getTime()) / 1000);
-                if (s < 60) return `${s}s ago`;
-                if (s < 3600) return `${Math.floor(s/60)}m ago`;
-                if (s < 86400) return `${Math.floor(s/3600)}h ago`;
-                return `${Math.floor(s/86400)}d ago`;
-              })();
-
-              const primaryPlatform = platformBadges[0];
-              const accentColor = primaryPlatform ? PLATFORM_COLORS[primaryPlatform] : "#7c3aed";
-
-              return (
-                <div key={p.id} className="post-card rounded-2xl p-4 flex items-start gap-4"
-                  style={{
-                    animationDelay:`${i * 0.04}s`,
-                    background:"rgba(255,255,255,0.02)",
-                    border:"1px solid rgba(255,255,255,0.06)",
-                    borderLeft:`3px solid ${accentColor}50`,
-                  }}>
-                  {p.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imageUrl} alt="" className="h-14 w-14 rounded-xl object-cover shrink-0" style={{ border:`1px solid ${accentColor}20` }} />
-                  ) : (
-                    <div className="h-14 w-14 rounded-xl shrink-0 flex items-center justify-center"
-                      style={{ background:`${accentColor}12`, border:`1px solid ${accentColor}20` }}>
-                      <ImageIcon className="h-5 w-5" style={{ color: accentColor }} />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <StatusPill status={p.status} />
-                      <div className="flex gap-1.5">
-                        {platformBadges.map(pb => (
-                          <span key={pb} className="flex items-center">{PLATFORM_ICONS[pb]}</span>
-                        ))}
-                      </div>
-                      <span className="text-xs text-zinc-700 ml-auto">{ago}</span>
-                    </div>
-                    <p className="text-sm text-zinc-300 line-clamp-2 leading-relaxed">{p.caption}</p>
-                    {p.error && <p className="text-xs text-red-400 mt-1">{p.error}</p>}
-                  </div>
-
-                  {p.status === "draft" && (
-                    <button onClick={() => publishPost(p.id)} disabled={!!postingId}
-                      className="shrink-0 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-white transition-all hover:opacity-90"
-                      style={{ background:"linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow:"0 0 12px rgba(124,58,237,0.2)" }}>
-                      {postingId === p.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                      Post
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Empty State ── */}
-      {posts.length === 0 && !preview && (
-        <div className="rounded-3xl py-14 text-center relative overflow-hidden"
-          style={{ background:"rgba(255,255,255,0.01)", border:"1px dashed rgba(255,255,255,0.07)" }}>
-          <div className="absolute inset-0" style={{
-            backgroundImage:"radial-gradient(rgba(124,58,237,.04) 1px,transparent 1px)",
-            backgroundSize:"24px 24px",
-          }} />
-          <Share2 className="h-10 w-10 mx-auto mb-3 text-zinc-700" />
-          <p className="text-zinc-500 text-sm font-medium">No posts yet.</p>
-          <p className="text-zinc-700 text-xs mt-1">Generate your first post above and watch it go live.</p>
-        </div>
-      )}
+      <script dangerouslySetInnerHTML={{ __html: CANVAS_SCRIPT }} />
+      <script dangerouslySetInnerHTML={{ __html: PARALLAX_SCRIPT }} />
     </div>
   );
 }
