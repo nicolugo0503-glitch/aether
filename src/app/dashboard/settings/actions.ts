@@ -1,0 +1,49 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { getCurrentUser, hashPassword, verifyPassword, destroySession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+
+export async function updateProfile(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const name = (formData.get("name") as string)?.trim();
+  if (!name || name.length < 1) redirect("/dashboard/settings?err=Name+cannot+be+empty.");
+  if (name.length > 80)         redirect("/dashboard/settings?err=Name+too+long.");
+
+  await prisma.user.update({ where: { id: user.id }, data: { name } });
+  redirect("/dashboard/settings?msg=Profile+updated+successfully.");
+}
+
+export async function changePassword(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const current = (formData.get("current") as string) ?? "";
+  const next    = (formData.get("next")    as string) ?? "";
+  const confirm = (formData.get("confirm") as string) ?? "";
+
+  if (!current || !next || !confirm)
+    redirect("/dashboard/settings?err=All+password+fields+are+required.");
+  if (next.length < 8)
+    redirect("/dashboard/settings?err=New+password+must+be+at+least+8+characters.");
+  if (next !== confirm)
+    redirect("/dashboard/settings?err=Passwords+do+not+match.");
+
+  const ok = await verifyPassword(current, user.passwordHash);
+  if (!ok) redirect("/dashboard/settings?err=Current+password+is+incorrect.");
+
+  const newHash = await hashPassword(next);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } });
+  redirect("/dashboard/settings?msg=Password+changed+successfully.");
+}
+
+export async function deleteAccount() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  await prisma.user.delete({ where: { id: user.id } });
+  await destroySession();
+  redirect("/");
+}

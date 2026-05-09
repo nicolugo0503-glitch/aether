@@ -37,7 +37,8 @@ const ROLE_PRESETS = [
 ];
 
 export default async function AgentsPage() {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const agents = await prisma.agent.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
