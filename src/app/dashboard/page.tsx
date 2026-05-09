@@ -13,7 +13,6 @@ import { Aurora }          from "./_components/aurora";
 import { ParticleCanvas } from "./_components/particle-canvas";
 import { Sparkline }       from "./_components/sparkline";
 import { AnimatedCounter } from "./_components/animated-counter";
-import { TiltCard }        from "./_components/tilt-card";
 import { LiveFeed }        from "./_components/live-feed";
 import { CommandPalette }  from "./_components/command-palette";
 import { AiAssistant }     from "./_components/ai-assistant";
@@ -116,7 +115,7 @@ export default async function DashboardHome() {
               const TrendIcon = s.trend === "up" ? TrendingUp : s.trend === ("down" as string) ? TrendingDown : Minus;
               const tc = s.trend === "up" ? "#10b981" : s.trend === ("down" as string) ? "#ef4444" : "#71717a";
               return (
-                <TiltCard key={s.label} style={{ borderRadius: 16 }}>
+                <div key={s.label} style={{ borderRadius: 16 }}>
                   <Link
                     href={s.href}
                     style={{ display: "block", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 18, textDecoration: "none", position: "relative", overflow: "hidden" }}
@@ -148,7 +147,7 @@ export default async function DashboardHome() {
                       </div>
                     </div>
                   </Link>
-                </TiltCard>
+                </div>
               );
             })}
           </div>
@@ -206,9 +205,8 @@ export default async function DashboardHome() {
                     <Link
                       key={q.href}
                       href={q.href}
+                      className="dash-quick-link"
                       style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 7, borderRadius: 11, padding: "11px 12px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", textDecoration: "none", transition: "transform 0.15s" }}
-                      onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.03)")}
-                      onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
                     >
                       <div style={{ width: 26, height: 26, borderRadius: 8, background: `${q.color}12`, border: `1px solid ${q.color}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <q.icon size={12} color={q.color} />
@@ -299,9 +297,8 @@ export default async function DashboardHome() {
               <Link
                 key={item.href}
                 href={item.href}
+                className="dash-nav-link"
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 10, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "#71717a", textDecoration: "none", transition: "all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(124,58,237,0.25)"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.05)"; }}
               >
                 <item.icon size={12} />
                 {item.label}
@@ -321,6 +318,8 @@ export default async function DashboardHome() {
           0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
           50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
         }
+        .dash-quick-link:hover { transform: scale(1.03); }
+        .dash-nav-link:hover { color: #fff !important; border-color: rgba(124,58,237,0.25) !important; }
       `}</style>
     </>
   );

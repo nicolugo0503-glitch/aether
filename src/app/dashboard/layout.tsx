@@ -1,22 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  LayoutDashboard, Bot, ListChecks, CreditCard,
-  Settings, LogOut, Megaphone, Share2,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
 import { MobileTabBar } from "@/components/dashboard/mobile-tab-bar";
 import { NavLink } from "@/components/dashboard/nav-link";
 
 const NAV = [
-  { href: "/dashboard",           label: "Overview",     icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/agents",    label: "AI Employees", icon: Bot },
-  { href: "/dashboard/campaigns", label: "Campaigns",    icon: Megaphone },
-  { href: "/dashboard/social",    label: "Social Media", icon: Share2 },
-  { href: "/dashboard/runs",      label: "Runs",         icon: ListChecks },
-  { href: "/dashboard/billing",   label: "Billing",      icon: CreditCard },
-  { href: "/dashboard/settings",  label: "Settings",     icon: Settings },
+  { href: "/dashboard",           label: "Overview",     icon: "LayoutDashboard", exact: true },
+  { href: "/dashboard/agents",    label: "AI Employees", icon: "Bot" },
+  { href: "/dashboard/campaigns", label: "Campaigns",    icon: "Megaphone" },
+  { href: "/dashboard/social",    label: "Social Media", icon: "Share2" },
+  { href: "/dashboard/runs",      label: "Runs",         icon: "ListChecks" },
+  { href: "/dashboard/billing",   label: "Billing",      icon: "CreditCard" },
+  { href: "/dashboard/settings",  label: "Settings",     icon: "Settings" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
