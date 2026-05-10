@@ -778,8 +778,12 @@ export default function SocialPage() {
                 <div style={{ fontSize: 9, fontWeight: 700, color: ACCENT2, textTransform: "uppercase", letterSpacing: "0.18em", marginBottom: 5 }}>
                   ◈ BROADCAST NETWORK
                 </div>
-                <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1, margin: 0 }}>
-                  <ChromaticNumber value="Social Media" color="#fff" />
+                <h1 style={{
+                  fontSize: 26, fontWeight: 900, letterSpacing: "-0.5px", lineHeight: 1.1, margin: 0,
+                  background: `linear-gradient(135deg, #fff 0%, ${ACCENT3} 50%, ${ACCENT2} 85%)`,
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                }}>
+                  Social Media
                 </h1>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px rgba(16,185,129,0.8)", animation: "status-blink 2s ease-in-out infinite" }} />
