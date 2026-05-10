@@ -11,10 +11,10 @@ Key facts about Aether:
 - All agents run 24/7 autonomously after setup
 
 Pricing plans:
-- Free: 25 runs/month, 1 agent — great for testing
-- Starter ($39/month): 500 runs/month, 3 agents
-- Growth ($99/month): 5,000 runs/month, 10 agents
-- Scale ($299/month): 50,000 runs/month, unlimited agents
+- Free ($0/month): 10 runs/month, 1 agent — great for testing
+- Starter ($49/month): 500 runs/month, 3 agents, AI image generation
+- Growth ($149/month): 5,000 runs/month, 10 agents, AI image generation
+- Scale ($499/month): 50,000 runs/month, 100 agents, AI image generation
 
 Setup takes about 10 minutes. Users connect their accounts (Meta, X, Resend) in Settings, then deploy agents.
 

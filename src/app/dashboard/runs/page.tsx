@@ -420,9 +420,9 @@ document.addEventListener('mousemove', function(e) {
                         hour: "2-digit", minute: "2-digit",
                       })}
                     </span>
-                    {(run as any).cost != null && (
+                    {(run as any).costCents != null && (run as any).costCents > 0 && (
                       <span className="run-cost-run">
-                        ${((run as any).cost / 100).toFixed(4)}
+                        ${((run as any).costCents / 100).toFixed(4)}
                       </span>
                     )}
                     {(run as any).output && (

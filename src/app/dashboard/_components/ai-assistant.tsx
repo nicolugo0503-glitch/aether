@@ -4,25 +4,10 @@ import { MessageCircle, X, Send, Sparkles } from "lucide-react";
 
 interface Msg { id: string; role: "user" | "ai"; text: string; streaming?: boolean; }
 
-const ANSWERS: [RegExp, string][] = [
-  [/agent|employee|worker|hire/i,   "You have 3 active AI employees. Nova (SDR) leads with 89 runs this month — 94% success rate. Want me to trigger a new run?"],
-  [/run|success|fail|error/i,       "Last 8 runs: 87.5% success rate. The one failure was Atlas timing out on a large dataset. I can retry it for you."],
-  [/cost|spend|price|money|dollar/i,"Total lifetime spend: $4.82, averaging $0.02 per run. You're at 18% of your monthly free tier limit."],
-  [/upgrade|pro|plan|limit/i,       "Pro ($49/mo) unlocks unlimited runs, 20 AI employees, and priority inference. Your current usage suggests you'd hit free limits in about 2 months."],
-  [/campaign/i,                      "You have no active campaigns yet. Campaigns let you schedule your AI employees to run on repeat — great for weekly reports or outbound sequences."],
-  [/social|twitter|instagram|fb/i,  "Social Media is connected but no posts scheduled. Want me to help you set up a weekly content calendar using your AI employees?"],
-  [/hello|hi|hey/i,                 "Hey! I'm your Aether AI assistant. I have full context on your account — agents, runs, costs, everything. What do you need?"],
-];
-
-function answer(q: string): string {
-  for (const [re, a] of ANSWERS) if (re.test(q)) return a;
-  return "I can help with agents, runs, costs, campaigns, or upgrading your plan. What are you working on?";
-}
-
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
-    { id: "0", role: "ai", text: "Hey Nicolas! I'm your Aether AI. Ask me anything about your dashboard." },
+    { id: "0", role: "ai", text: "Hey! I'm Aria, your Aether AI assistant. Ask me anything about features, pricing, or getting set up." },
   ]);
   const [input, setInput]     = useState("");
   const [busy, setBusy]       = useState(false);
@@ -30,27 +15,49 @@ export function AiAssistant() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-  const send = () => {
+  const send = async () => {
     if (!input.trim() || busy) return;
-    const userMsg: Msg = { id: Date.now().toString(), role: "user", text: input };
-    const reply        = answer(input);
+    const userText = input.trim();
     setInput("");
     setBusy(true);
+
+    const userMsg: Msg = { id: Date.now().toString(), role: "user", text: userText };
     setMsgs(p => [...p, userMsg]);
 
     const aiId = (Date.now() + 1).toString();
     setMsgs(p => [...p, { id: aiId, role: "ai", text: "", streaming: true }]);
 
-    let i = 0;
-    const iv = setInterval(() => {
-      i++;
-      setMsgs(p => p.map(m => m.id === aiId ? { ...m, text: reply.slice(0, i) } : m));
-      if (i >= reply.length) {
-        clearInterval(iv);
-        setMsgs(p => p.map(m => m.id === aiId ? { ...m, streaming: false } : m));
-        setBusy(false);
-      }
-    }, 16);
+    try {
+      const history = msgs
+        .filter(m => m.role === "user" || (m.role === "ai" && m.id !== "0"))
+        .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
+      history.push({ role: "user", content: userText });
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history }),
+      });
+      const data = await res.json();
+      const reply: string = data.reply || "Sorry, something went wrong. Try again or email support@useaether.net.";
+
+      // Simulate streaming by typing out the reply
+      let i = 0;
+      const iv = setInterval(() => {
+        i++;
+        setMsgs(p => p.map(m => m.id === aiId ? { ...m, text: reply.slice(0, i) } : m));
+        if (i >= reply.length) {
+          clearInterval(iv);
+          setMsgs(p => p.map(m => m.id === aiId ? { ...m, streaming: false } : m));
+          setBusy(false);
+        }
+      }, 12);
+    } catch {
+      setMsgs(p => p.map(m => m.id === aiId
+        ? { ...m, text: "Connection error. Please try again.", streaming: false }
+        : m));
+      setBusy(false);
+    }
   };
 
   return (
