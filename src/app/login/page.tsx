@@ -153,7 +153,7 @@ export default async function LoginPage({
 
           <div className="mt-8 pt-6 border-t border-white/[0.04] flex items-center justify-center gap-2 text-zinc-700 text-xs">
             <Shield className="h-3.5 w-3.5" />
-            256-bit encryption · SOC 2 · No credit card needed
+            256-bit encryption · End-to-End Encrypted · No credit card needed
           </div>
         </div>
       </div>

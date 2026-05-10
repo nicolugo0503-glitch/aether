@@ -332,7 +332,7 @@ export default function HomePage() {
               <Link href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
             </div>
             <div className="flex items-center gap-6 text-zinc-700 text-xs">
-              <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> SOC 2 Type II</div>
+              <div className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> 256-bit SSL</div>
               <div className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> GDPR Compliant</div>
               <div className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> 99.9% Uptime SLA</div>
             </div>

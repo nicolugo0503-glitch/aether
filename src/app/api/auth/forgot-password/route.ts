@@ -28,11 +28,11 @@ export async function POST(req: NextRequest) {
     data: { resetToken: token, resetTokenExpiry: expiry },
   });
 
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.com"}/reset-password/${token}`;
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.useaether.net"}/reset-password/${token}`;
 
   // Send via Resend using system API key
   const resendKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@yourdomain.com";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@useaether.net";
 
   if (resendKey) {
     await fetch("https://api.resend.com/emails", {

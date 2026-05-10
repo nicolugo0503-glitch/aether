@@ -283,7 +283,7 @@ export default async function SignupPage({
             </p>
             <div className="mt-4 pt-5 border-t border-white/[0.04] flex items-center justify-center gap-2 text-zinc-700 text-xs">
               <Shield className="h-3.5 w-3.5" />
-              256-bit SSL · SOC 2 · GDPR Compliant
+              256-bit SSL · End-to-End Encrypted · GDPR Compliant
             </div>
           </div>
         </div>
