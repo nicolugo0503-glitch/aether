@@ -1233,7 +1233,8 @@ document.addEventListener('mousemove', function(e) {
                     <span>Email campaigns</span>
                   </div>
                 </div>
-                {!isCurrent && key !== "FREE" && (
+                {/* Only FREE users go through Checkout — paid users change plans via the Customer Portal to avoid duplicate subscriptions */}
+                {user.plan === "FREE" && !isCurrent && key !== "FREE" && (
                   <form action="/api/stripe/checkout" method="POST" style={{ marginTop: "1.5rem" }}>
                     <input type="hidden" name="plan" value={key} />
                     <button type="submit" style={{
@@ -1241,7 +1242,18 @@ document.addEventListener('mousemove', function(e) {
                       background: "linear-gradient(135deg,#22c55e,#84cc16)", color: "#0a0e27",
                       fontWeight: 700, border: "none", cursor: "pointer", fontSize: "0.875rem",
                     }}>
-                      Switch to {key}
+                      Upgrade to {key}
+                    </button>
+                  </form>
+                )}
+                {user.plan !== "FREE" && !isCurrent && key !== "FREE" && (
+                  <form action="/api/stripe/portal" method="POST" style={{ marginTop: "1.5rem" }}>
+                    <button type="submit" style={{
+                      width: "100%", padding: "0.75rem", borderRadius: 8,
+                      background: "rgba(34,197,94,0.12)", color: "#22c55e",
+                      fontWeight: 700, border: "1px solid rgba(34,197,94,0.3)", cursor: "pointer", fontSize: "0.875rem",
+                    }}>
+                      Switch via Portal
                     </button>
                   </form>
                 )}
