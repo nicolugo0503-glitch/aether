@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// One-time endpoint to create tables that prisma db push missed.
-// Temporarily open — will be locked after first use.
+// One-time migration endpoint — locked after tables were created.
 export async function GET(_req: NextRequest) {
+  return NextResponse.json({ message: "Migration already applied." }, { status: 410 });
 
   const results: Record<string, string> = {};
 
