@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
+import { PLAN_LIMITS, toPlanKey, stripe } from "@/lib/stripe";
 import { CreditCard, Sparkles, TrendingUp, Zap, ArrowRight, Target , Activity} from "lucide-react";
 
 export const metadata = {
@@ -233,6 +233,24 @@ export default async function BillingPage() {
   const successfulRuns = await prisma.run.count({
     where: { userId: user.id, status: { in: ["success", "completed", "COMPLETED"] } },
   });
+
+  // Fetch real Stripe invoices
+  let invoices: Array<{ id: string; amount: number; date: string; status: string; url: string | null; period: string }> = [];
+  if (user.stripeCustomerId) {
+    try {
+      const inv = await stripe.invoices.list({ customer: user.stripeCustomerId, limit: 6 });
+      invoices = inv.data
+        .filter(i => i.status === "paid")
+        .map(i => ({
+          id: i.id,
+          amount: (i.amount_paid / 100).toFixed(2) as unknown as number,
+          date: new Date(i.created * 1000).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          status: i.status ?? "paid",
+          url: i.hosted_invoice_url ?? null,
+          period: `${new Date(i.period_start * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${new Date(i.period_end * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+        }));
+    } catch { /* Stripe not configured or request failed */ }
+  }
 
   const estSpend = ((costData._sum.costCents || 0) / 100).toFixed(2);
   const usagePercent = Math.min((totalRuns / plan.monthlyRuns) * 100, 100);
@@ -669,8 +687,8 @@ export default async function BillingPage() {
 
     .comparison-section-bill {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
       margin-top: 3rem;
     }
 
@@ -746,7 +764,12 @@ export default async function BillingPage() {
       transform: translateY(-2px);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
+      .comparison-section-bill {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 600px) {
       .comparison-section-bill {
         grid-template-columns: 1fr;
       }
@@ -1042,12 +1065,24 @@ document.addEventListener('mousemove', function(e) {
           </div>
         </div>
 
-        {user.plan === "FREE" && (
+        {user.plan === "FREE" ? (
           <div className="upgrade-section-bill">
-            <button className="upgrade-button-bill">
-              <Sparkles size={20} />
-              Upgrade to Pro
-            </button>
+            <form action="/api/stripe/checkout" method="POST">
+              <input type="hidden" name="plan" value="STARTER" />
+              <button type="submit" className="upgrade-button-bill">
+                <Sparkles size={20} />
+                Upgrade to Starter — $49/mo
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="upgrade-section-bill">
+            <form action="/api/stripe/portal" method="POST">
+              <button type="submit" className="upgrade-button-bill" style={{ background: "linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow: "0 15px 40px rgba(124,58,237,0.4)" }}>
+                <CreditCard size={20} />
+                Manage Subscription
+              </button>
+            </form>
           </div>
         )}
 
@@ -1097,82 +1132,82 @@ document.addEventListener('mousemove', function(e) {
         <div className="history-section-bill">
           <h2 className="section-title-bill">Billing History</h2>
           <div className="history-rows-bill">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="history-row-bill">
-                <div className="history-info-bill">
-                  <div className="history-title-bill">
-                    {i === 1 ? "Current Period" : `Invoice ${4 - i}`}
-                  </div>
-                  <div className="history-date-bill">
-                    {i === 1 ? "May 2026 - June 2026" : `${5 - i} months ago`}
-                  </div>
-                </div>
-                <div className="history-amount-bill">
-                  ${(24 + i * 5).toFixed(2)}
-                </div>
+            {invoices.length === 0 ? (
+              <div style={{ padding: "2rem", textAlign: "center", color: "#a0aec0", background: "rgba(34,197,94,0.04)", borderRadius: 10, border: "1px solid rgba(34,197,94,0.1)" }}>
+                {user.stripeCustomerId
+                  ? "No paid invoices yet."
+                  : "Subscribe to a plan to see billing history here."}
               </div>
-            ))}
+            ) : (
+              invoices.map((inv) => (
+                <div key={inv.id} className="history-row-bill">
+                  <div className="history-info-bill">
+                    <div className="history-title-bill">{plan.label} Plan</div>
+                    <div className="history-date-bill">{inv.period}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div className="history-amount-bill">${inv.amount}</div>
+                    {inv.url && (
+                      <a href={inv.url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: "0.75rem", color: "#22c55e", textDecoration: "none", padding: "4px 10px", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 6 }}>
+                        View
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <div className="comparison-section-bill">
-          <div className="plan-column-bill">
-            <div className="plan-column-title-bill">FREE</div>
-            <div className="feature-list-bill">
-              <div className="feature-item-bill">
-                <div className="feature-check-bill">✓</div>
-                <span>Up to 50 runs/month</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill">✓</div>
-                <span>3 agents</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill">✓</div>
-                <span>Basic monitoring</span>
-              </div>
-              <div className="feature-item-bill" style={{ opacity: 0.5 }}>
-                <div className="feature-check-bill" style={{ background: "rgba(160, 174, 192, 0.2)" }}>
-                  —
+          {(["FREE", "STARTER", "GROWTH", "SCALE"] as const).map((key) => {
+            const p = PLAN_LIMITS[key];
+            const isCurrent = user.plan === key;
+            return (
+              <div key={key} className="plan-column-bill"
+                style={isCurrent ? { background: "rgba(34,197,94,0.12)", borderColor: "rgba(34,197,94,0.4)" } : undefined}>
+                <div className="plan-column-title-bill" style={isCurrent ? { color: "#22c55e" } : undefined}>
+                  {key} {isCurrent && <span style={{ fontSize: "0.75rem", marginLeft: 6, opacity: 0.7 }}>← you</span>}
                 </div>
-                <span>Priority support</span>
-              </div>
-              <div className="feature-item-bill" style={{ opacity: 0.5 }}>
-                <div className="feature-check-bill" style={{ background: "rgba(160, 174, 192, 0.2)" }}>
-                  —
+                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#22c55e", marginBottom: "1rem" }}>{p.price}<span style={{ fontSize: "0.875rem", color: "#a0aec0", fontWeight: 400 }}>/mo</span></div>
+                <div className="feature-list-bill">
+                  <div className="feature-item-bill">
+                    <div className="feature-check-bill" style={isCurrent ? { background: "rgba(34,197,94,0.3)" } : undefined}>✓</div>
+                    <span>{p.monthlyRuns.toLocaleString()} runs/month</span>
+                  </div>
+                  <div className="feature-item-bill">
+                    <div className="feature-check-bill" style={isCurrent ? { background: "rgba(34,197,94,0.3)" } : undefined}>✓</div>
+                    <span>{p.agents} AI employee{p.agents !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div className="feature-item-bill">
+                    <div className="feature-check-bill" style={isCurrent ? { background: "rgba(34,197,94,0.3)" } : undefined}>{p.images ? "✓" : "—"}</div>
+                    <span style={!p.images ? { opacity: 0.5 } : undefined}>AI image generation</span>
+                  </div>
+                  <div className="feature-item-bill">
+                    <div className="feature-check-bill" style={isCurrent ? { background: "rgba(34,197,94,0.3)" } : undefined}>✓</div>
+                    <span>Social publishing</span>
+                  </div>
+                  <div className="feature-item-bill">
+                    <div className="feature-check-bill" style={isCurrent ? { background: "rgba(34,197,94,0.3)" } : undefined}>✓</div>
+                    <span>Email campaigns</span>
+                  </div>
                 </div>
-                <span>Custom integrations</span>
+                {!isCurrent && key !== "FREE" && (
+                  <form action="/api/stripe/checkout" method="POST" style={{ marginTop: "1.5rem" }}>
+                    <input type="hidden" name="plan" value={key} />
+                    <button type="submit" style={{
+                      width: "100%", padding: "0.75rem", borderRadius: 8,
+                      background: "linear-gradient(135deg,#22c55e,#84cc16)", color: "#0a0e27",
+                      fontWeight: 700, border: "none", cursor: "pointer", fontSize: "0.875rem",
+                    }}>
+                      Switch to {key}
+                    </button>
+                  </form>
+                )}
               </div>
-            </div>
-          </div>
-
-          <div className="plan-column-bill" style={{ background: "rgba(34, 197, 94, 0.12)", borderColor: "rgba(34, 197, 94, 0.4)" }}>
-            <div className="plan-column-title-bill" style={{ color: "#22c55e" }}>
-              PRO
-            </div>
-            <div className="feature-list-bill">
-              <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Unlimited runs</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Unlimited agents</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Advanced analytics</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Priority support</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Custom integrations</span>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         <div className="nav-strip-bill">

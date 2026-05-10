@@ -5,7 +5,7 @@ import {
   Share2, Sparkles, Send, Settings, History,
   CheckCircle2, XCircle, Clock, Loader2, Plus,
   Twitter, Instagram, Facebook, Key, Eye, EyeOff,
-  RefreshCw, Image as ImageIcon, Copy, Check,
+  RefreshCw, Image as ImageIcon, Copy, Check, CalendarClock,
 } from "lucide-react";
 
 type SocialPost = {
@@ -109,8 +109,18 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+type ScheduleConfig = {
+  enabled: boolean;
+  time: string;
+  timezone: string;
+  frequency: string;
+  topic: string;
+  platforms: string[];
+  nextRun: string | null;
+};
+
 export default function SocialPage() {
-  const [tab, setTab] = useState<"publish" | "history" | "settings">("publish");
+  const [tab, setTab] = useState<"publish" | "history" | "settings" | "schedule">("publish");
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("professional");
   const [platforms, setPlatforms] = useState<string[]>(["facebook", "instagram"]);
@@ -123,6 +133,12 @@ export default function SocialPage() {
   const [connections, setConnections] = useState<Connections | null>(null);
   const [savingCreds, setSavingCreds] = useState(false);
   const [credsSaved, setCredsSaved] = useState(false);
+  const [schedule, setSchedule] = useState<ScheduleConfig>({
+    enabled: false, time: "09:00", timezone: "America/New_York",
+    frequency: "daily", topic: "", platforms: ["facebook", "instagram"], nextRun: null,
+  });
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [scheduleSaved, setScheduleSaved] = useState(false);
   const [creds, setCreds] = useState({
     fbPageId: "", fbPageToken: "", igUserId: "",
     twitterApiKey: "", twitterApiSecret: "",
@@ -147,10 +163,19 @@ export default function SocialPage() {
     } catch {}
   }, []);
 
+  const loadSchedule = useCallback(async () => {
+    try {
+      const res = await fetch("/api/social/schedule");
+      const data = await res.json();
+      if (!data.error) setSchedule(data);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     loadPosts();
     loadConnections();
-  }, [loadPosts, loadConnections]);
+    loadSchedule();
+  }, [loadPosts, loadConnections, loadSchedule]);
 
   const togglePlatform = (id: string) => {
     setPlatforms(prev =>
@@ -192,6 +217,21 @@ export default function SocialPage() {
       }
     } catch {}
     setPublishing(false);
+  };
+
+  const saveSchedule = async () => {
+    setSavingSchedule(true);
+    try {
+      await fetch("/api/social/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(schedule),
+      });
+      setScheduleSaved(true);
+      loadSchedule();
+      setTimeout(() => setScheduleSaved(false), 3000);
+    } catch {}
+    setSavingSchedule(false);
   };
 
   const saveCreds = async () => {
@@ -281,6 +321,13 @@ export default function SocialPage() {
         <button style={tabStyle(tab === "settings")} onClick={() => setTab("settings")}>
           <Settings size={13} style={{ display: "inline", marginRight: 5 }} />
           Connect Accounts
+        </button>
+        <button style={tabStyle(tab === "schedule")} onClick={() => setTab("schedule")}>
+          <CalendarClock size={13} style={{ display: "inline", marginRight: 5 }} />
+          Auto-Schedule
+          {schedule.enabled && (
+            <span style={{ marginLeft: 6, width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block", verticalAlign: "middle" }} />
+          )}
         </button>
       </div>
 
@@ -710,6 +757,162 @@ export default function SocialPage() {
               <br /><br />
               <strong style={{ color: "#60a5fa" }}>Twitter/X:</strong> Go to developer.twitter.com → Projects & Apps → your app → Keys and tokens.
               You need API Key, API Secret, Access Token, and Access Token Secret with Read+Write permissions.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── SCHEDULE TAB ── */}
+      {tab === "schedule" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Enable toggle */}
+          <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 22px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Auto-Post Schedule</div>
+                <div style={{ fontSize: 12, color: "#52525b" }}>
+                  Automatically generate and publish posts on a schedule. Requires connected platforms.
+                </div>
+              </div>
+              <button
+                onClick={() => setSchedule(s => ({ ...s, enabled: !s.enabled }))}
+                style={{
+                  width: 48, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
+                  background: schedule.enabled ? "#10b981" : "rgba(255,255,255,0.1)",
+                  position: "relative", transition: "background 0.2s", flexShrink: 0,
+                }}
+              >
+                <span style={{
+                  position: "absolute", top: 3, left: schedule.enabled ? 24 : 3,
+                  width: 20, height: 20, borderRadius: "50%", background: "#fff",
+                  transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                }} />
+              </button>
+            </div>
+
+            {schedule.enabled && (
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                {/* Frequency */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, color: "#71717a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Frequency</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                      { value: "daily", label: "Daily" },
+                      { value: "every2days", label: "Every 2 days" },
+                      { value: "weekly", label: "Weekly" },
+                    ].map(f => (
+                      <button key={f.value} onClick={() => setSchedule(s => ({ ...s, frequency: f.value }))} style={{
+                        padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid",
+                        borderColor: schedule.frequency === f.value ? "#7c3aed" : "rgba(255,255,255,0.08)",
+                        background: schedule.frequency === f.value ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.03)",
+                        color: schedule.frequency === f.value ? "#a78bfa" : "#71717a",
+                      }}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Time + Timezone */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "#71717a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Post Time</label>
+                    <input
+                      type="time"
+                      value={schedule.time}
+                      onChange={e => setSchedule(s => ({ ...s, time: e.target.value }))}
+                      style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "9px 12px", fontSize: 13, color: "#e4e4e7", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "#71717a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Timezone</label>
+                    <select
+                      value={schedule.timezone}
+                      onChange={e => setSchedule(s => ({ ...s, timezone: e.target.value }))}
+                      style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "9px 12px", fontSize: 13, color: "#e4e4e7", outline: "none", boxSizing: "border-box" as const, cursor: "pointer" }}
+                    >
+                      <option value="America/New_York">Eastern (ET)</option>
+                      <option value="America/Chicago">Central (CT)</option>
+                      <option value="America/Denver">Mountain (MT)</option>
+                      <option value="America/Los_Angeles">Pacific (PT)</option>
+                      <option value="Europe/London">London (GMT)</option>
+                      <option value="Europe/Paris">Paris (CET)</option>
+                      <option value="Asia/Dubai">Dubai (GST)</option>
+                      <option value="Asia/Kolkata">Mumbai (IST)</option>
+                      <option value="Asia/Tokyo">Tokyo (JST)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Platforms */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, color: "#71717a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Platforms to auto-post to</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {(Object.entries(PLATFORM_META) as [string, typeof PLATFORM_META[keyof typeof PLATFORM_META]][]).map(([pid, meta]) => {
+                      const active = schedule.platforms.includes(pid);
+                      const Icon = meta.icon;
+                      return (
+                        <button key={pid} onClick={() => setSchedule(s => ({
+                          ...s,
+                          platforms: active ? s.platforms.filter(p => p !== pid) : [...s.platforms, pid],
+                        }))} style={{
+                          display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid",
+                          borderColor: active ? meta.color + "60" : "rgba(255,255,255,0.08)",
+                          background: active ? meta.bg : "rgba(255,255,255,0.03)",
+                          color: active ? meta.color : "#52525b",
+                        }}>
+                          <Icon size={13} />
+                          {meta.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom topic */}
+                <div style={{ marginBottom: 4 }}>
+                  <label style={{ display: "block", fontSize: 11, color: "#71717a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                    Topic <span style={{ color: "#3f3f46", fontWeight: 400, textTransform: "none" }}>(leave blank for AI-picked topics)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={schedule.topic}
+                    onChange={e => setSchedule(s => ({ ...s, topic: e.target.value }))}
+                    placeholder="e.g. AI automation tips for small business"
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "9px 12px", fontSize: 13, color: "#e4e4e7", outline: "none", boxSizing: "border-box" as const }}
+                  />
+                </div>
+
+                {schedule.nextRun && (
+                  <div style={{ marginTop: 12, fontSize: 11, color: "#52525b" }}>
+                    Next auto-post: <span style={{ color: "#a78bfa" }}>{new Date(schedule.nextRun).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={saveSchedule}
+            disabled={savingSchedule}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, alignSelf: "flex-start",
+              background: scheduleSaved ? "linear-gradient(135deg,#10b981,#059669)" : "linear-gradient(135deg,#7c3aed,#6d28d9)",
+              color: "#fff", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 700,
+              border: "none", cursor: "pointer", boxShadow: "0 0 16px rgba(124,58,237,0.35)",
+            }}
+          >
+            {savingSchedule ? <Loader2 size={14} /> : scheduleSaved ? <Check size={14} /> : <CalendarClock size={14} />}
+            {scheduleSaved ? "Saved!" : savingSchedule ? "Saving..." : schedule.enabled ? "Save Schedule" : "Save (disabled)"}
+          </button>
+
+          <div style={{ padding: "14px 18px", borderRadius: 12, background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.15)" }}>
+            <p style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600, marginBottom: 4 }}>How auto-scheduling works</p>
+            <p style={{ fontSize: 11, color: "#52525b", lineHeight: 1.6, margin: 0 }}>
+              When enabled, Aether uses AI to write a post about your chosen topic (or picks a relevant business topic automatically),
+              generates an image (on paid plans), and publishes to all your connected platforms at the time you choose.
+              Make sure your platform credentials are saved in the Connect Accounts tab first.
             </p>
           </div>
         </div>

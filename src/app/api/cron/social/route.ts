@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
-import { postToFacebook, postToInstagram, postToX } from "@/lib/social";
+import { postToFacebook, postToInstagram, postToTwitter } from "@/lib/social";
 import OpenAI from "openai";
 
 const RANDOM_TOPICS = [
@@ -101,9 +101,13 @@ Return ONLY JSON:
       }
       if (platforms.includes("x") && user.twitterApiKey && user.twitterApiSecret && user.twitterAccessToken && user.twitterAccessSecret) {
         try {
-          xPostId = await postToX(
-            { apiKey: user.twitterApiKey, apiSecret: user.twitterApiSecret, accessToken: user.twitterAccessToken, accessSecret: user.twitterAccessSecret },
-            fullCaption
+          const tweetText = fullCaption.length > 280 ? fullCaption.slice(0, 277) + "..." : fullCaption;
+          xPostId = await postToTwitter(
+            user.twitterApiKey,
+            user.twitterApiSecret,
+            user.twitterAccessToken,
+            user.twitterAccessSecret,
+            tweetText,
           );
         } catch (e: any) { postError = e.message; }
       }
