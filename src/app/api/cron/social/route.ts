@@ -15,9 +15,15 @@ const RANDOM_TOPICS = [
 ];
 
 export async function GET(req: NextRequest) {
-  // Verify this is called by Vercel cron
+  // Verify this is called by Vercel cron.
+  // IMPORTANT: if CRON_SECRET is not set, reject ALL requests — never fall through to
+  // "Bearer undefined" which would make any attacker request pass.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return NextResponse.json({ error: "CRON_SECRET env var not configured" }, { status: 500 });
+  }
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

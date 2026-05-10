@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-const SECRET = process.env.ADMIN_SECRET || "aether-backfill-2024";
+// IMPORTANT: do NOT fall back to a hardcoded default — that would allow anyone who knows
+// (or guesses) the default to enumerate all user emails and modify their data.
+// Require ADMIN_SECRET to be explicitly set as an env var.
+const SECRET = process.env.ADMIN_SECRET;
 
 const DEFAULT_AGENTS = [
   {
@@ -31,6 +34,10 @@ const DEFAULT_AGENTS = [
 ];
 
 export async function GET(req: NextRequest) {
+  // Reject all requests if ADMIN_SECRET env var is not configured
+  if (!SECRET) {
+    return NextResponse.json({ error: "ADMIN_SECRET env var not configured" }, { status: 500 });
+  }
   const secret = req.nextUrl.searchParams.get("secret");
   if (secret !== SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
