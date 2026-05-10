@@ -63,7 +63,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {NAV.map((item) => (
             <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} exact={item.exact} />
           ))}
-          {user.email === "nicolugo0503@gmail.com" && (
+          {user.email === "useaether.ai@gmail.com" && (
             <NavLink href="/dashboard/feedback" icon="MessageSquare" label="Feedback" />
           )}
         </nav>

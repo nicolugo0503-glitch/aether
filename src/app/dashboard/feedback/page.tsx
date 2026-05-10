@@ -43,7 +43,7 @@ function RatingBadge({ rating }: { rating: number }) {
   );
 }
 
-const ADMIN_EMAIL = "nicolugo0503@gmail.com";
+const ADMIN_EMAIL = "useaether.ai@gmail.com";
 
 export default async function FeedbackPage() {
   const user = await getCurrentUser();
