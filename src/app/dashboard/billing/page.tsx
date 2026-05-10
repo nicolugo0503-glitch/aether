@@ -223,6 +223,9 @@ export default async function BillingPage() {
   const planKey = toPlanKey(user.plan);
   const plan = PLAN_LIMITS[planKey];
 
+  // runsThisPeriod = authoritative monthly counter tracked by the system
+  const runsThisPeriod = user.runsUsedThisPeriod ?? 0;
+
   const totalRuns = await prisma.run.count({ where: { userId: user.id } });
   const costData = await prisma.run.aggregate({
     where: { userId: user.id },
@@ -253,7 +256,8 @@ export default async function BillingPage() {
   }
 
   const estSpend = ((costData._sum.costCents || 0) / 100).toFixed(2);
-  const usagePercent = Math.min((totalRuns / plan.monthlyRuns) * 100, 100);
+  // usagePercent uses runsThisPeriod (the per-billing-cycle counter), NOT all-time totalRuns
+  const usagePercent = Math.min((runsThisPeriod / plan.monthlyRuns) * 100, 100);
   const agentPercent = Math.min((agents.length / plan.agents) * 100, 100);
 
   const CSS = `
@@ -974,9 +978,9 @@ document.addEventListener('mousemove', function(e) {
 
           <div className="usage-bar-container-bill">
             <div className="usage-label-bill">
-              <span>Monthly Usage</span>
+              <span>This Period Usage</span>
               <span>
-                <ChromaticNumber value={`${totalRuns} / ${plan.monthlyRuns}`} />
+                <ChromaticNumber value={`${runsThisPeriod} / ${plan.monthlyRuns}`} />
               </span>
             </div>
             <div className="usage-bar-bill">
@@ -1005,9 +1009,9 @@ document.addEventListener('mousemove', function(e) {
 
         <div className="stats-grid-bill">
           <div className="stat-card-bill holo3d-bill">
-            <div className="stat-label-bill">This Month Runs</div>
+            <div className="stat-label-bill">This Period Runs</div>
             <div className="stat-value-bill">
-              <ChromaticNumber value={totalRuns} />
+              <ChromaticNumber value={runsThisPeriod} />
             </div>
             <div className="stat-content-bill">
               <div className="circuit-bill">
@@ -1090,7 +1094,7 @@ document.addEventListener('mousemove', function(e) {
           <h2 className="section-title-bill">Detailed Breakdown</h2>
 
           <div className="usage-item-bill">
-            <div className="usage-item-label-bill">Runs This Month</div>
+            <div className="usage-item-label-bill">Runs This Period</div>
             <div className="usage-item-bar-bill">
               <div
                 className="usage-item-fill-bill"
@@ -1098,7 +1102,7 @@ document.addEventListener('mousemove', function(e) {
               />
             </div>
             <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#a0aec0" }}>
-              {totalRuns} / {plan.monthlyRuns} runs
+              {runsThisPeriod} / {plan.monthlyRuns} runs
             </div>
           </div>
 
