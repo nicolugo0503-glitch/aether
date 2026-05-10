@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Settings, Lock, Bell, Trash2, User, CheckCircle2, AlertCircle } from "lucide-react";
-import { updateProfile, changePassword } from "./actions";
+import { Settings, Lock, Bell, Trash2, User, CheckCircle2, AlertCircle, Key } from "lucide-react";
+import { updateProfile, changePassword, saveApiKeys } from "./actions";
 import { SettingsToggles } from "./_components/settings-toggles";
 import { DeleteAccountButton } from "./_components/delete-button";
 
@@ -189,6 +189,54 @@ export default async function SettingsPage({
             <input name="confirm" type="password" placeholder="••••••••" required style={INPUT_STYLE} />
 
             <SaveButton label="Change password" />
+          </form>
+        </Section>
+
+        {/* API Keys */}
+        <Section icon={Key} title="API Keys & Integrations">
+          <p style={{ fontSize: 12, color: "#52525b", marginBottom: 18, lineHeight: 1.6 }}>
+            These keys power your campaigns and email outreach. They are stored securely and never shared.
+          </p>
+          <form action={saveApiKeys}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#a1a1aa", marginBottom: 5 }}>
+              Resend API Key <span style={{ color: "#52525b", fontWeight: 400 }}>— for email campaigns</span>
+            </label>
+            <input
+              name="resendApiKey"
+              type="password"
+              defaultValue={user.resendApiKey ?? ""}
+              placeholder="re_..."
+              style={INPUT_STYLE}
+            />
+
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#a1a1aa", marginBottom: 5 }}>
+              From Email <span style={{ color: "#52525b", fontWeight: 400 }}>— sender address for campaigns</span>
+            </label>
+            <input
+              name="fromEmail"
+              type="email"
+              defaultValue={user.fromEmail ?? ""}
+              placeholder="you@yourdomain.com"
+              style={INPUT_STYLE}
+            />
+
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#a1a1aa", marginBottom: 5 }}>
+              Serper API Key <span style={{ color: "#52525b", fontWeight: 400 }}>— for web research & lead enrichment</span>
+            </label>
+            <input
+              name="serperApiKey"
+              type="password"
+              defaultValue={user.serperApiKey ?? ""}
+              placeholder="serper_..."
+              style={INPUT_STYLE}
+            />
+
+            <div style={{ fontSize: 11, color: "#3f3f46", marginBottom: 14, lineHeight: 1.5 }}>
+              Get your Resend key at <strong style={{ color: "#71717a" }}>resend.com</strong> ·
+              Serper key at <strong style={{ color: "#71717a" }}>serper.dev</strong>
+            </div>
+
+            <SaveButton label="Save API keys" />
           </form>
         </Section>
 

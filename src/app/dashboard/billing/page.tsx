@@ -231,7 +231,7 @@ export default async function BillingPage() {
 
   const agents = await prisma.agent.findMany({ where: { userId: user.id } });
   const successfulRuns = await prisma.run.count({
-    where: { userId: user.id, status: "COMPLETED" },
+    where: { userId: user.id, status: { in: ["success", "completed", "COMPLETED"] } },
   });
 
   const estSpend = ((costData._sum.costCents || 0) / 100).toFixed(2);
@@ -941,7 +941,7 @@ document.addEventListener('mousemove', function(e) {
           <div className="plan-header-bill">
             <div>
               <div className="plan-name-bill">
-                <ChromaticNumber value={user.plan === "FREE" ? "Free Plan" : "Pro Plan"} />
+                <ChromaticNumber value={`${plan.label} Plan`} />
               </div>
             </div>
             <div className="plan-badge-bill">
@@ -1055,41 +1055,41 @@ document.addEventListener('mousemove', function(e) {
           <h2 className="section-title-bill">Detailed Breakdown</h2>
 
           <div className="usage-item-bill">
-            <div className="usage-item-label-bill">API Calls</div>
+            <div className="usage-item-label-bill">Runs This Month</div>
             <div className="usage-item-bar-bill">
               <div
                 className="usage-item-fill-bill"
-                style={{ width: "65%" }}
+                style={{ width: `${usagePercent}%` }}
               />
             </div>
             <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#a0aec0" }}>
-              2,450 / 5,000 calls
+              {totalRuns} / {plan.monthlyRuns} runs
             </div>
           </div>
 
           <div className="usage-item-bill">
-            <div className="usage-item-label-bill">Storage</div>
+            <div className="usage-item-label-bill">AI Employees</div>
             <div className="usage-item-bar-bill">
               <div
                 className="usage-item-fill-bill"
-                style={{ width: "32%" }}
+                style={{ width: `${agentPercent}%` }}
               />
             </div>
             <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#a0aec0" }}>
-              3.2 GB / 10 GB
+              {agents.length} / {plan.agents} agents
             </div>
           </div>
 
           <div className="usage-item-bill">
-            <div className="usage-item-label-bill">Concurrent Runs</div>
+            <div className="usage-item-label-bill">Successful Runs</div>
             <div className="usage-item-bar-bill">
               <div
                 className="usage-item-fill-bill"
-                style={{ width: "45%" }}
+                style={{ width: totalRuns > 0 ? `${Math.round((successfulRuns / totalRuns) * 100)}%` : "0%" }}
               />
             </div>
             <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#a0aec0" }}>
-              9 / 20 concurrent
+              {successfulRuns} of {totalRuns} runs succeeded ({totalRuns > 0 ? Math.round((successfulRuns / totalRuns) * 100) : 0}%)
             </div>
           </div>
         </div>

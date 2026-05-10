@@ -82,10 +82,16 @@ function ChromaticNumber({ value }: { value: string | number }) {
 
 function StatusPulse({ status }: { status: string }) {
   const cfg: Record<string, { color: string; label: string }> = {
-    COMPLETED: { color: "#10b981", label: "COMPLETED" },
-    FAILED: { color: "#ef4444", label: "FAILED" },
-    RUNNING: { color: "#f59e0b", label: "RUNNING" },
-    PENDING: { color: "#6366f1", label: "PENDING" },
+    success:   { color: "#10b981", label: "success" },
+    completed: { color: "#10b981", label: "success" },
+    COMPLETED: { color: "#10b981", label: "success" },
+    error:     { color: "#ef4444", label: "error" },
+    failed:    { color: "#ef4444", label: "error" },
+    FAILED:    { color: "#ef4444", label: "error" },
+    running:   { color: "#f59e0b", label: "running" },
+    RUNNING:   { color: "#f59e0b", label: "running" },
+    pending:   { color: "#6366f1", label: "pending" },
+    PENDING:   { color: "#6366f1", label: "pending" },
   };
   const c = cfg[status] || { color: "#71717a", label: status };
   return (
@@ -117,9 +123,9 @@ export default async function RunsPage() {
     include: { agent: { select: { name: true } } },
   });
 
-  const completedRuns = runs.filter((r) => r.status === "COMPLETED").length;
-  const failedRuns = runs.filter((r) => r.status === "FAILED").length;
-  const runningRuns = runs.filter((r) => r.status === "RUNNING").length;
+  const completedRuns = runs.filter((r) => ["success","completed","COMPLETED"].includes(r.status)).length;
+  const failedRuns = runs.filter((r) => ["error","failed","FAILED"].includes(r.status)).length;
+  const runningRuns = runs.filter((r) => ["running","RUNNING"].includes(r.status)).length;
   const successRate = runs.length > 0 ? Math.round((completedRuns / runs.length) * 100) : 0;
 
   const CSS = `

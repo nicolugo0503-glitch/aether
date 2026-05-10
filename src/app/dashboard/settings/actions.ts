@@ -4,6 +4,26 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, hashPassword, verifyPassword, destroySession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
+export async function saveApiKeys(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const resendApiKey = (formData.get("resendApiKey") as string)?.trim() || null;
+  const serperApiKey = (formData.get("serperApiKey") as string)?.trim() || null;
+  const fromEmail    = (formData.get("fromEmail")    as string)?.trim() || null;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      ...(resendApiKey !== null && { resendApiKey }),
+      ...(serperApiKey !== null && { serperApiKey }),
+      ...(fromEmail    !== null && { fromEmail    }),
+    },
+  });
+
+  redirect("/dashboard/settings?msg=API+keys+saved+successfully.");
+}
+
 export async function updateProfile(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
