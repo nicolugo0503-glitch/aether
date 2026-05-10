@@ -65,7 +65,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">6. Billing and Payments</h2>
-            <p>Paid plans are billed monthly in advance. All payments are processed through Stripe. Refunds are issued at our sole discretion within 7 days of a charge. Free plan users receive 25 AI runs per period. Plan limits are enforced automatically. We reserve the right to change pricing with 30 days notice.</p>
+            <p>Paid plans are billed monthly in advance. All payments are processed through Stripe. Refunds are issued at our sole discretion within 7 days of a charge. Free plan users receive 10 AI runs per period. Plan limits are enforced automatically. We reserve the right to change pricing with 30 days notice.</p>
           </section>
 
           <section>

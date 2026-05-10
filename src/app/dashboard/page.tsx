@@ -1,4 +1,5 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
@@ -13,9 +14,11 @@ import { Aurora }          from "./_components/aurora";
 import { ParticleCanvas } from "./_components/particle-canvas";
 import { Sparkline }       from "./_components/sparkline";
 import { AnimatedCounter } from "./_components/animated-counter";
-import { LiveFeed }        from "./_components/live-feed";
 import { CommandPalette }  from "./_components/command-palette";
 import { AiAssistant }     from "./_components/ai-assistant";
+
+// LiveFeed uses Math.random() in its initial state — skip SSR to avoid hydration mismatch
+const LiveFeed = dynamic(() => import("./_components/live-feed").then(m => m.LiveFeed), { ssr: false });
 
 function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up") {
   const pts: number[] = [];
