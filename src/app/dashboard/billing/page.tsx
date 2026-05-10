@@ -235,8 +235,8 @@ export default async function BillingPage() {
   });
 
   const estSpend = ((costData._sum.estimatedCostCents || 0) / 100).toFixed(2);
-  const usagePercent = Math.min((totalRuns / plan.maxRunsPerMonth) * 100, 100);
-  const agentPercent = Math.min((agents.length / plan.maxAgents) * 100, 100);
+  const usagePercent = Math.min((totalRuns / plan.monthlyRuns) * 100, 100);
+  const agentPercent = Math.min((agents.length / plan.agents) * 100, 100);
 
   const CSS = `
     @property --ang {
@@ -953,7 +953,7 @@ document.addEventListener('mousemove', function(e) {
             <div className="usage-label-bill">
               <span>Monthly Usage</span>
               <span>
-                <ChromaticNumber value={`${totalRuns} / ${plan.maxRunsPerMonth}`} />
+                <ChromaticNumber value={`${totalRuns} / ${plan.monthlyRuns}`} />
               </span>
             </div>
             <div className="usage-bar-bill">
@@ -968,7 +968,7 @@ document.addEventListener('mousemove', function(e) {
             <div className="usage-label-bill">
               <span>Agents</span>
               <span>
-                <ChromaticNumber value={`${agents.length} / ${plan.maxAgents}`} />
+                <ChromaticNumber value={`${agents.length} / ${plan.agents}`} />
               </span>
             </div>
             <div className="usage-bar-bill">
