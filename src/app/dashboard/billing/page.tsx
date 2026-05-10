@@ -16,7 +16,7 @@ function seedHash(s: string): number {
   return Math.abs(h);
 }
 
-function MiniWave({ color, seed }: { color: string; seed: number }) {h
+function MiniWave({ color, seed }: { color: string; seed: number }) {
   const heights = Array.from({ length: 16 }, (_, i) => {
     const rand = seedHash(`${seed}-${i}`) % 100;
     return 30 + rand;
@@ -220,13 +220,13 @@ export default async function BillingPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const planKey = toPlanKey(user.stripeProduct);
+  const planKey = toPlanKey(user.plan);
   const plan = PLAN_LIMITS[planKey];
 
   const totalRuns = await prisma.run.count({ where: { userId: user.id } });
   const costData = await prisma.run.aggregate({
     where: { userId: user.id },
-    _sum: { estimatedCostCents: true },
+    _sum: { costCents: true },
   });
 
   const agents = await prisma.agent.findMany({ where: { userId: user.id } });
@@ -234,7 +234,7 @@ export default async function BillingPage() {
     where: { userId: user.id, status: "COMPLETED" },
   });
 
-  const estSpend = ((costData._sum.estimatedCostCents || 0) / 100).toFixed(2);
+  const estSpend = ((costData._sum.costCents || 0) / 100).toFixed(2);
   const usagePercent = Math.min((totalRuns / plan.monthlyRuns) * 100, 100);
   const agentPercent = Math.min((agents.length / plan.agents) * 100, 100);
 
@@ -941,11 +941,11 @@ document.addEventListener('mousemove', function(e) {
           <div className="plan-header-bill">
             <div>
               <div className="plan-name-bill">
-                <ChromaticNumber value={user.stripeProduct === "FREE" ? "Free Plan" : "Pro Plan"} />
+                <ChromaticNumber value={user.plan === "FREE" ? "Free Plan" : "Pro Plan"} />
               </div>
             </div>
             <div className="plan-badge-bill">
-              {user.stripeProduct === "FREE" ? "CURRENT" : "ACTIVE"}
+              {user.plan === "FREE" ? "CURRENT" : "ACTIVE"}
             </div>
           </div>
 
@@ -1042,7 +1042,7 @@ document.addEventListener('mousemove', function(e) {
           </div>
         </div>
 
-        {user.stripeProduct === "FREE" && (
+        {user.plan === "FREE" && (
           <div className="upgrade-section-bill">
             <button className="upgrade-button-bill">
               <Sparkles size={20} />
