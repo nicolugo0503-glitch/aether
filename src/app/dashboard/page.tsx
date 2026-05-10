@@ -319,4 +319,16 @@ export default async function DashboardHome() {
           50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
         }
         .dash-quick-link:hover { transform: scale(1.03); }
-        .dash-nav-link:hover { color: #fff !important; border-color: rgba(124,58,2
+        .dash-nav-link:hover { color: #fff !important; border-color: rgba(124,58,237,0.25) !important; }
+      `}</style>
+    </>
+  );
+}
+
+// ── Agent avatar gradient pairs ──────────────────────────────────
+const COLORS = [
+  ["#7c3aed", "#6d28d9"],
+  ["#ec4899", "#db2777"],
+  ["#3b82f6", "#2563eb"],
+  ["#10b981", "#059669"],
+];

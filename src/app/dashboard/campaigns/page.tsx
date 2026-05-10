@@ -5,4 +5,5 @@ import CampaignsClient from "./campaigns-client";
 export default async function CampaignsPage() {
     const user = await getCurrentUser();
     if (!user) redirect("/login");
-    return <Campaigns
+    return <CampaignsClient />;
+}

@@ -433,4 +433,19 @@ export default function CampaignsPage() {
                             {r.error && <p className="text-xs text-red-400 mt-0.5 truncate">{r.error}</p>}
                             {r.output && <p className="text-xs text-zinc-600 mt-0.5 line-clamp-1">{r.output}</p>}
                           </div>
-                       
+                          <span className={`text-xs font-bold ${r.status === "sent" ? "text-emerald-500" : "text-red-400"}`}>
+                            {r.status === "sent" ? "✓ sent" : "✗ failed"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
