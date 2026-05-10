@@ -4,8 +4,9 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { isRateLimited } from "@/lib/rate-limit";
-import { ArrowRight, Shield } from "lucide-react";
+import { ArrowRight, Shield, Mail } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
+import { ResendVerifyForm } from "./_components/resend-verify-form";
 
 async function login(formData: FormData) {
   "use server";
@@ -34,14 +35,13 @@ async function login(formData: FormData) {
 
 export default async function LoginPage({
   searchParams,
-}: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+}: { searchParams: Promise<{ error?: string; resent?: string }> }) {
+  const { error, resent } = await searchParams;
 
   const errorMsg =
     error === "invalid"    ? "Invalid email or password — try again." :
     error === "missing"    ? "Please fill in all fields." :
     error === "ratelimit"  ? "Too many attempts. Please wait 15 minutes and try again." :
-    error === "unverified" ? "Please verify your email before signing in. Check your inbox for the verification link." :
     null;
 
   return (
@@ -100,6 +100,27 @@ export default async function LoginPage({
               </div>
             ))}
           </div>
+
+          {/* Unverified email — resend form */}
+          {error === "unverified" && !resent && (
+            <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-4 text-sm">
+              <div className="flex items-start gap-3 mb-3">
+                <Mail className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-amber-300 font-semibold">Email not verified</p>
+                  <p className="text-amber-400/70 text-xs mt-0.5">Enter your email below and we&apos;ll send a new verification link.</p>
+                </div>
+              </div>
+              <ResendVerifyForm />
+            </div>
+          )}
+
+          {/* Resent success */}
+          {resent === "1" && (
+            <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+              Verification email sent! Check your inbox (and spam folder).
+            </div>
+          )}
 
           {/* Error */}
           {errorMsg && (
