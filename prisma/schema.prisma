@@ -68,6 +68,7 @@ model User {
   runs        Run[]
   campaigns   Campaign[]
   socialPosts SocialPost[]
+  feedbacks   Feedback[]
 }
 
 model SocialPost {
@@ -144,4 +145,15 @@ model RateLimit {
   key     String   @id
   count   Int      @default(0)
   resetAt DateTime
+}
+
+// User feedback / reviews
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  rating    Int                        // 1–5 stars
+  message   String?
+  page      String?                    // which page they were on
+  createdAt DateTime @default(now())
 }

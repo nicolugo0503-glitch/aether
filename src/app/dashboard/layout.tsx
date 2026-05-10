@@ -5,6 +5,8 @@ import { LogOut } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
 import { MobileTabBar } from "@/components/dashboard/mobile-tab-bar";
 import { NavLink } from "@/components/dashboard/nav-link";
+import { ChatWidget } from "@/components/widgets/ChatWidget";
+import { FeedbackWidget } from "@/components/widgets/FeedbackWidget";
 
 const NAV = [
   { href: "/dashboard",           label: "Overview",     icon: "LayoutDashboard", exact: true },
@@ -123,6 +125,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* Mobile bottom nav */}
       <MobileTabBar />
+
+      {/* ── FLOATING WIDGETS ─────────────────────── */}
+      <ChatWidget />
+      <FeedbackWidget />
     </div>
   );
 }
