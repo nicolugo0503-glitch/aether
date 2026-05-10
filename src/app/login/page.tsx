@@ -13,7 +13,7 @@ async function login(formData: FormData) {
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
   // 10 attempts per 15 minutes per IP
-  if (isRateLimited(`login:${ip}`, 10)) {
+  if (await isRateLimited(`login:${ip}`, 10)) {
     return redirect("/login?error=ratelimit");
   }
 

@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { prisma } from "@/lib/db";
 
-const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "dev-only-change-me-dev-only-change-me",
-);
+const authSecret = process.env.AUTH_SECRET;
+if (!authSecret) {
+  throw new Error(
+    "[Aether] AUTH_SECRET environment variable is not set. " +
+    "Generate a strong random value and add it to your Vercel environment variables.",
+  );
+}
+const SECRET = new TextEncoder().encode(authSecret);
 const COOKIE_NAME = "aether_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 

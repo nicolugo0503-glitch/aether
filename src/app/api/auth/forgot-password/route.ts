@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
   // 3 reset requests per hour per IP
-  if (isRateLimited(`forgot:${ip}`, 3, 60 * 60 * 1000)) {
+  if (await isRateLimited(`forgot:${ip}`, 3, 60 * 60 * 1000)) {
     // Return 200 even when rate-limited so we don't reveal info
     return NextResponse.json({ ok: true });
   }

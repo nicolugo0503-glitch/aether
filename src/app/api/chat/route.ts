@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
   // 30 messages per hour per IP
-  if (isRateLimited(`chat:${ip}`, 30, 60 * 60 * 1000)) {
+  if (await isRateLimited(`chat:${ip}`, 30, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many messages. Try again later." }, { status: 429 });
   }
 

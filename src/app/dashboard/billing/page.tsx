@@ -216,9 +216,25 @@ function ChromaticNumber({ value }: { value: string | number }) {
   );
 }
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; success?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) return null;
+
+  const params = await searchParams;
+  const pageError =
+    params.error === "missing_price"
+      ? "Upgrade failed: Stripe price IDs are not configured. Please contact support@useaether.net."
+      : params.error === "cancelled"
+      ? "Upgrade cancelled — no charge was made."
+      : null;
+  const pageSuccess =
+    params.success === "1"
+      ? "Subscription activated! Your plan has been upgraded."
+      : null;
 
   const planKey = toPlanKey(user.plan);
   const plan = PLAN_LIMITS[planKey];
@@ -884,6 +900,26 @@ document.addEventListener('mousemove', function(e) {
       />
 
       <div className="container-bill">
+        {/* Page-level alerts (upgrade success / error) */}
+        {pageSuccess && (
+          <div style={{
+            marginBottom: "1.5rem", padding: "14px 18px", borderRadius: 10,
+            background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.35)",
+            color: "#4ade80", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 10,
+          }}>
+            ✓ {pageSuccess}
+          </div>
+        )}
+        {pageError && (
+          <div style={{
+            marginBottom: "1.5rem", padding: "14px 18px", borderRadius: 10,
+            background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+            color: "#f87171", fontSize: 14, fontWeight: 600, display: "flex", alignItems: "center", gap: 10,
+          }}>
+            ⚠ {pageError}
+          </div>
+        )}
+
         <div className="hero-banner-bill">
           <div className="hero-icon-bill">
             <div style={{ position: "relative", width: "100%", height: "100%" }}>

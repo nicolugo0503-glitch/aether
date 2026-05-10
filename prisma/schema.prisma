@@ -137,3 +137,11 @@ model Run {
   createdAt  DateTime  @default(now())
   finishedAt DateTime?
 }
+
+// Cross-instance rate limiting — persisted in DB so serverless functions share state.
+// Create/update with: npx prisma db push
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+}

@@ -13,8 +13,15 @@ async function signup(formData: FormData) {
   const hdrs = await headers();
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
-  if (isRateLimited(`signup:${ip}`, 5, 60 * 60 * 1000)) {
+  if (await isRateLimited(`signup:${ip}`, 5, 60 * 60 * 1000)) {
     return redirect("/signup?error=ratelimit");
+  }
+
+  // Guard: if email service is not configured, fail before creating the account.
+  // Without RESEND_API_KEY the verification email cannot be sent, which would leave
+  // the user permanently locked out (emailVerified stays false forever).
+  if (!process.env.RESEND_API_KEY) {
+    return redirect("/signup?error=config");
   }
 
   const email = String(formData.get("email") || "").toLowerCase().trim();
@@ -231,6 +238,7 @@ export default async function SignupPage({
               <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {error === "exists"    ? "An account with that email already exists." :
                  error === "ratelimit" ? "Too many signups from this device. Try again in an hour." :
+                 error === "config"    ? "Account creation is temporarily unavailable. Please contact support@useaether.net." :
                  "Please enter a valid email and password (8+ chars)."}
               </div>
             )}
