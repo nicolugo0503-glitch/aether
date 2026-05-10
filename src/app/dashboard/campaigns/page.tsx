@@ -1,5 +1,5 @@
 // deploy trigger
-import { redirect } from "next/navigation";
+import { redirect } from "// v2 - force build
 import { getCurrentUser } from "@/lib/auth";
 import CampaignsClient from "./campaigns-client";
 
