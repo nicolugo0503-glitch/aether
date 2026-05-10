@@ -34,11 +34,12 @@ function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up"
 export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
 
-  const [agents, recentRuns, totals, allCount] = await Promise.all([
+  const [agents, recentRuns, totals, allCount, agentCount] = await Promise.all([
     prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.run.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10, include: { agent: true } }),
     prisma.run.aggregate({ where: { userId: user.id, status: "success" }, _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true }),
     prisma.run.count({ where: { userId: user.id } }),
+    prisma.agent.count({ where: { userId: user.id } }),
   ]);
 
   const limits      = PLAN_LIMITS[toPlanKey(user.plan)];
@@ -58,7 +59,7 @@ export default async function DashboardHome() {
   const agentStubs = agents.map(a => ({ id: a.id, name: a.name, role: a.role }));
 
   const STAT_CARDS = [
-    { label: "AI Employees",    value: agents.length,    suffix: ` / ${limits.agents}`, icon: Bot,          iconColor: "#7c3aed", spark: genSparkline(seed,     10, "up"),   sparkColor: "#7c3aed", trend: "up"   as const, trendLabel: "+2 this week", href: "/dashboard/agents"  },
+    { label: "AI Employees",    value: agentCount,        suffix: ` / ${limits.agents}`, icon: Bot,          iconColor: "#7c3aed", spark: genSparkline(seed,     10, "up"),   sparkColor: "#7c3aed", trend: "up"   as const, trendLabel: "+2 this week", href: "/dashboard/agents"  },
     { label: "Successful Runs", value: successCount,     suffix: "",                    icon: CheckCircle2, iconColor: "#10b981", spark: genSparkline(seed + 3, 10, "up"),   sparkColor: "#10b981", trend: "up"   as const, trendLabel: "all time",     href: "/dashboard/runs"    },
     { label: "Runs This Period", value: runsUsed,        suffix: ` / ${limits.monthlyRuns}`, icon: Activity, iconColor: "#f59e0b", spark: genSparkline(seed + 7, 10, "flat"), sparkColor: "#f59e0b", trend: "flat" as const, trendLabel: "this month",   href: "/dashboard/runs"    },
     { label: "Est. Spend",      value: Math.round(totalCost / 100), prefix: "$", suffix: "", icon: TrendingUp, iconColor: "#ec4899", spark: genSparkline(seed + 11,10, "up"),  sparkColor: "#ec4899", trend: "up"   as const, trendLabel: "lifetime",     href: "/dashboard/billing" },
