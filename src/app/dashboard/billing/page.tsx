@@ -1164,39 +1164,4 @@ document.addEventListener('mousemove', function(e) {
                 <span>Advanced analytics</span>
               </div>
               <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Priority support</span>
-              </div>
-              <div className="feature-item-bill">
-                <div className="feature-check-bill" style={{ background: "rgba(34, 197, 94, 0.3)" }}>✓</div>
-                <span>Custom integrations</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="nav-strip-bill">
-          <Link href="/dashboard/campaigns" className="nav-link-bill">
-            <TrendingUp size={16} />
-            Campaigns
-          </Link>
-          <Link href="/dashboard/agents" className="nav-link-bill">
-            <Zap size={16} />
-            Agents
-          </Link>
-          <Link href="/dashboard/social" className="nav-link-bill">
-            <Activity size={16} />
-            Social
-          </Link>
-          <Link href="/dashboard/settings" className="nav-link-bill">
-            <Target size={16} />
-            Settings
-          </Link>
-        </div>
-      </div>
-
-      <script dangerouslySetInnerHTML={{ __html: CANVAS_SCRIPT }} />
-      <script dangerouslySetInnerHTML={{ __html: PARALLAX_SCRIPT }} />
-    </div>
-  );
-}
+                <div className="feature-check-bill" style={{ background: "rgb

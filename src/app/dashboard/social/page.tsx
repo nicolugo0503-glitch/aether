@@ -303,12 +303,4 @@ export default async function SocialPage() {
             padding: "16px", borderRadius: 12,
             background: "rgba(255,255,255,0.025)",
             border: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            <div style={{ fontSize: 24, fontWeight: 900, color: "#fff", marginBottom: 4 }}>{value}</div>
-            <div style={{ fontSize: 11, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+ 

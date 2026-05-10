@@ -205,14 +205,4 @@ export default async function SettingsPage({
                 Delete Account
               </div>
               <div style={{ fontSize: 12, color: "#71717a", maxWidth: 380 }}>
-                Permanently removes your account, all AI employees, and all run history. Cannot be undone.
-              </div>
-            </div>
-            <DeleteAccountButton />
-          </div>
-        </Section>
-
-      </div>
-    </div>
-  );
-}
+                Permanently removes your acc
