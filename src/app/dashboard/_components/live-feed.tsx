@@ -42,20 +42,21 @@ function ago(ts: number) {
 }
 
 export function LiveFeed({ initialCount }: { initialCount: number }) {
-  const [events, setEvents] = useState<FeedEvent[]>(() =>
-    Array.from({ length: Math.min(initialCount + 2, 6) }, (_, i) =>
-      makeEvent(i * 90000)
-    )
-  );
+  // Start with empty state — populated in useEffect to avoid server/client
+  // Math.random() mismatch that causes React hydration error #418
+  const [events, setEvents] = useState<FeedEvent[]>([]);
   const [, tick] = useState(0);
 
   useEffect(() => {
+    // Seed initial events client-side only (safe to use Math.random here)
+    setEvents(Array.from({ length: Math.min(initialCount + 2, 6) }, (_, i) => makeEvent(i * 90000)));
+
     const addEvent = setInterval(() => {
       setEvents(prev => [makeEvent(), ...prev.slice(0, 7)]);
     }, 3200);
     const timer = setInterval(() => tick(n => n + 1), 20000);
     return () => { clearInterval(addEvent); clearInterval(timer); };
-  }, []);
+  }, [initialCount]);
 
   return (
     <>
