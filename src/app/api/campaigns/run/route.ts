@@ -5,6 +5,7 @@ import { runAgent } from "@/lib/ai";
 import { sendEmail } from "@/lib/email";
 import { webSearch } from "@/lib/search";
 import { readSheetLeads } from "@/lib/sheets";
+import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,6 +31,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No sender email. Add your From Email in Settings." }, { status: 400 });
     }
 
+    // ── Enforce monthly run limit ─────────────────────────────────
+    const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
+    if (user.runsUsedThisPeriod >= planLimits.monthlyRuns) {
+      return NextResponse.json({
+        error: `Monthly run limit reached (${planLimits.monthlyRuns} runs on ${planLimits.label} plan). Upgrade at /dashboard/billing.`,
+      }, { status: 402 });
+    }
+    const runsRemaining = planLimits.monthlyRuns - user.runsUsedThisPeriod;
+
     // Mark campaign as running
     await prisma.campaign.update({
       where: { id: campaign.id },
@@ -37,11 +47,15 @@ export async function POST(req: NextRequest) {
     });
 
     // Read leads from Google Sheet
-    const leads = await readSheetLeads(campaign.sheetUrl);
-    if (leads.length === 0) {
+    const allLeads = await readSheetLeads(campaign.sheetUrl);
+    if (allLeads.length === 0) {
       await prisma.campaign.update({ where: { id: campaign.id }, data: { status: "error" } });
       return NextResponse.json({ error: "No valid leads found in sheet" }, { status: 400 });
     }
+
+    // Cap leads to the number of runs remaining in this billing period
+    const leads = allLeads.slice(0, runsRemaining);
+    const skipped = allLeads.length - leads.length;
 
     const results: any[] = [];
 
@@ -106,6 +120,13 @@ export async function POST(req: NextRequest) {
         });
       } catch (err: any) {
         results.push({ lead: lead.email, status: "error", error: err.message });
+      }
+    }
+
+    // Note skipped leads in results
+    if (skipped > 0) {
+      for (let i = 0; i < skipped; i++) {
+        results.push({ lead: allLeads[leads.length + i].email, status: "error", error: "Skipped — monthly run limit reached. Upgrade your plan." });
       }
     }
 

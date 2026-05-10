@@ -15,7 +15,7 @@ const BASE_COMMANDS = [
   { id: "billing",    label: "Go to Billing",        group: "Navigate", icon: CreditCard,      href: "/dashboard/billing" },
   { id: "settings",   label: "Go to Settings",       group: "Navigate", icon: Settings,        href: "/dashboard/settings" },
   { id: "new-agent",  label: "Hire new AI Employee", group: "Actions",  icon: Plus,            href: "/dashboard/agents" },
-  { id: "upgrade",    label: "Upgrade to Pro",       group: "Actions",  icon: Zap,             href: "/dashboard/billing" },
+  { id: "upgrade",    label: "Upgrade Plan",          group: "Actions",  icon: Zap,             href: "/dashboard/billing" },
 ];
 
 function fuzzy(str: string, pat: string): boolean {

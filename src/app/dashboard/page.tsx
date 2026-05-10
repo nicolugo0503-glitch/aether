@@ -278,7 +278,7 @@ export default async function DashboardHome() {
                     style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 10, padding: "8px 0", background: "linear-gradient(135deg,#7c3aed,#6d28d9)", color: "#fff", fontSize: 12, fontWeight: 700, boxShadow: "0 0 14px rgba(124,58,237,0.3)", textDecoration: "none" }}
                   >
                     <Sparkles size={12} />
-                    Upgrade to Pro
+                    Upgrade Plan
                   </Link>
                 )}
               </div>
