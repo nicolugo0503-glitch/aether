@@ -43,9 +43,12 @@ function RatingBadge({ rating }: { rating: number }) {
   );
 }
 
+const ADMIN_EMAIL = "nicolugo0503@gmail.com";
+
 export default async function FeedbackPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.email !== ADMIN_EMAIL) redirect("/dashboard");
 
   const feedbacks = await prisma.feedback.findMany({
     orderBy: { createdAt: "desc" },

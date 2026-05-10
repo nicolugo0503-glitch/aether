@@ -16,7 +16,6 @@ const NAV = [
   { href: "/dashboard/runs",      label: "Runs",         icon: "ListChecks" },
   { href: "/dashboard/billing",   label: "Billing",      icon: "CreditCard" },
   { href: "/dashboard/settings",  label: "Settings",     icon: "Settings" },
-  { href: "/dashboard/feedback",  label: "Feedback",     icon: "MessageSquare" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -64,6 +63,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {NAV.map((item) => (
             <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} exact={item.exact} />
           ))}
+          {user.email === "nicolugo0503@gmail.com" && (
+            <NavLink href="/dashboard/feedback" icon="MessageSquare" label="Feedback" />
+          )}
         </nav>
 
         {/* User section */}
