@@ -188,11 +188,7 @@ export default async function FeedbackPage() {
               gap: 0, padding: "14px 18px",
               borderBottom: i < feedbacks.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
               alignItems: "center",
-              transition: "background 0.1s",
-            }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = "transparent")}
-            >
+            }}>
               {/* Stars */}
               <div><Stars rating={fb.rating} /></div>
 
