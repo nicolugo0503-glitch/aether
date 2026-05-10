@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
-import { CreditCard, Sparkles, TrendingUp, Zap, ArrowRight, Target } from "lucide-react";
+import { CreditCard, Sparkles, TrendingUp, Zap, ArrowRight, Target , Activity} from "lucide-react";
 
 export const metadata = {
   title: "Billing & Usage | Aether Dashboard",
@@ -16,7 +16,7 @@ function seedHash(s: string): number {
   return Math.abs(h);
 }
 
-function MiniWave({ color, seed }: { color: string; seed: number }) {
+function MiniWave({ color, seed }: { color: string; seed: number }) {h
   const heights = Array.from({ length: 16 }, (_, i) => {
     const rand = seedHash(`${seed}-${i}`) % 100;
     return 30 + rand;
