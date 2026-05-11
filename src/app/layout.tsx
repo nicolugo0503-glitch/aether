@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CustomCursor } from "@/components/landing/cursor";
 import { ChatWidget } from "@/components/chat-widget";
+import { Analytics } from "@vercel/analytics/next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -47,6 +48,7 @@ export default function RootLayout({
         <CustomCursor />
         <ChatWidget />
         {children}
+        <Analytics />
       </body>
     </html>
   );
