@@ -25,17 +25,17 @@ export function Footer() {
         <div>
           <div className="label mb-3">Company</div>
           <ul className="space-y-2 text-muted">
-            <li><Link href="/#" className="hover:text-white">About</Link></li>
-            <li><Link href="/#" className="hover:text-white">Careers</Link></li>
-            <li><Link href="/#" className="hover:text-white">Blog</Link></li>
+            <li><Link href="/about" className="hover:text-white">About</Link></li>
+            <li><Link href="/careers" className="hover:text-white">Careers</Link></li>
+            <li><Link href="/blog" className="hover:text-white">Blog</Link></li>
           </ul>
         </div>
         <div>
           <div className="label mb-3">Legal</div>
           <ul className="space-y-2 text-muted">
-            <li><Link href="/#" className="hover:text-white">Terms</Link></li>
-            <li><Link href="/#" className="hover:text-white">Privacy</Link></li>
-            <li><Link href="/#" className="hover:text-white">Security</Link></li>
+            <li><Link href="/terms" className="hover:text-white">Terms</Link></li>
+            <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
+            <li><Link href="/security" className="hover:text-white">Security</Link></li>
           </ul>
         </div>
       </div>

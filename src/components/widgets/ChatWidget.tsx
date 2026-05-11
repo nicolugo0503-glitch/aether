@@ -52,7 +52,7 @@ const FAQ: { keywords: string[]; question: string; answer: string }[] = [
     keywords: ["limit", "run limit", "how many runs", "quota", "used"],
     question: "What are the plan run limits?",
     answer:
-      "**Free**: 10 runs/month · **Starter**: 100 runs · **Growth**: 500 runs · **Scale**: 2,000 runs. Your current usage is shown on the **Billing** page and the **Overview** dashboard.",
+      "**Free**: 10 runs/month · **Starter**: 500 runs · **Growth**: 5,000 runs · **Scale**: 50,000 runs. Your current usage is shown on the **Billing** page and the **Overview** dashboard.",
   },
   {
     keywords: ["api key", "openai", "resend", "serper", "serp", "email api"],

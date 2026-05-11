@@ -26,15 +26,25 @@ export default function VerifyEmailInvalidPage() {
         <h1 className="text-2xl font-black text-white mb-3">Invalid or expired link</h1>
         <p className="text-zinc-400 mb-8 leading-relaxed">
           This verification link is invalid or has already been used.
-          Try signing up again to get a fresh link.
+          If you already have an account, go to the login page and use the &ldquo;Resend verification email&rdquo; option.
+          Otherwise, create a new account to get started.
         </p>
-        <Link
-          href="/signup"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-white text-sm"
-          style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 24px rgba(124,58,237,0.35)" }}
-        >
-          Create a new account →
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-white text-sm"
+            style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 24px rgba(124,58,237,0.35)" }}
+          >
+            Go to Login →
+          </Link>
+          <Link
+            href="/signup"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm"
+            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#a1a1aa" }}
+          >
+            Create new account
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
       passwordHash: await hashPassword(password),
       resetToken: null,
       resetTokenExpiry: null,
+      // Resetting via email proves ownership — mark email as verified
+      emailVerified: true,
+      emailVerifyToken: null,
     },
   });
 

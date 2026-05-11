@@ -133,7 +133,7 @@ export default async function SignupPage({
           </p>
           <p className="text-zinc-600 text-sm">
             Didn&apos;t get it? Check your spam folder, or{" "}
-            <Link href="/signup" className="text-violet-400 hover:text-violet-300 transition-colors">try again</Link>.
+            <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors">go to login to resend it</Link>.
           </p>
         </div>
       </div>

@@ -3,11 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, ListChecks, CreditCard,
-  Settings, Megaphone, Share2, LucideIcon,
+  Settings, Megaphone, Share2, MessageSquare, LucideIcon,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  LayoutDashboard, Bot, ListChecks, CreditCard, Settings, Megaphone, Share2,
+  LayoutDashboard, Bot, ListChecks, CreditCard, Settings, Megaphone, Share2, MessageSquare,
 };
 
 export function NavLink({
