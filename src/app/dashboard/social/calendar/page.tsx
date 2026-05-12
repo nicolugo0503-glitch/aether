@@ -40,6 +40,10 @@ function statusInfo(status: string) {
   }
 }
 
+function parsePlatforms(raw: string | null): string[] {
+  try { return JSON.parse(raw || "[]"); } catch { return []; }
+}
+
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -333,7 +337,7 @@ export default function SocialCalendarPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       {dayPosts.slice(0, 3).map((p, i) => {
                         const info = statusInfo(p.status);
-                        const plats: string[] = JSON.parse(p.platforms || "[]");
+                        const plats: string[] = parsePlatforms(p.platforms);
                         return (
                           <div key={p.id} style={{
                             fontSize: 9, fontWeight: 700, lineHeight: 1.3,
@@ -481,7 +485,7 @@ export default function SocialCalendarPage() {
                   </div>
                 ) : selPosts.map((p, i) => {
                   const info  = statusInfo(p.status);
-                  const plats = JSON.parse(p.platforms || "[]") as string[];
+                  const plats = parsePlatforms(p.platforms) as string[];
                   const InfoIcon = info.icon;
                   return (
                     <div key={p.id} className="detail-item" style={{ animationDelay: `${i * 0.05}s` }}>
@@ -564,7 +568,7 @@ export default function SocialCalendarPage() {
               const pm     = PLATFORM_META[pid];
               const PIcon  = pm.icon;
               const count  = posts.filter(p => {
-                const plats = JSON.parse(p.platforms || "[]") as string[];
+                const plats = parsePlatforms(p.platforms) as string[];
                 return plats.includes(pid);
               }).length;
               const pct = totalPosts > 0 ? Math.round(count / totalPosts * 100) : 0;

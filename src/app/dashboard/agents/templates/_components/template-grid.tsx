@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Mail, Share2, HeadphonesIcon, Search, TrendingUp,
   FileText, Globe, Zap, CheckCircle2, Loader2,
-  Star, Sparkles, Filter,
+  Sparkles,
 } from "lucide-react";
 
 /* ── Template data ─────────────────────────────────────────── */

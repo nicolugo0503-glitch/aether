@@ -9,10 +9,12 @@ import { TemplateGrid } from "./_components/template-grid";
 export const metadata = { title: "Agent Templates | Aether" };
 
 export default async function TemplatesPage() {
-  const user = (await getCurrentUser())!;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
   const agentCount = await prisma.agent.count({ where: { userId: user.id } });
   const limit      = PLAN_LIMITS[toPlanKey(user.plan)].agents;
   const canAdd     = agentCount < limit;
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
