@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Shield, Star, Zap, X, ChevronDown, ChevronUp, Clock, DollarSign, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, Check, Shield, Star, Zap } from "lucide-react";
 import { HeroSection } from "@/components/landing/hero";
 import { ActivityTicker } from "@/components/landing/ticker";
 import { BentoGrid } from "@/components/landing/bento";

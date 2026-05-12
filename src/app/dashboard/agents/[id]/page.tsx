@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { runAgent } from "@/lib/ai";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import { centsToUSD, formatDate } from "@/lib/utils";
-import { Bot, Play, Settings, Clock, CheckCircle2, XCircle, Loader2, ChevronLeft, Zap, Brain, Thermometer } from "lucide-react";
+import { Bot, Play, Settings, Clock, CheckCircle2, XCircle, Loader2, ChevronLeft, Zap, Brain, Thermometer, CalendarClock } from "lucide-react";
 import Link from "next/link";
 
 async function updateAgent(formData: FormData) {
@@ -151,7 +151,7 @@ export default async function AgentDetail({
           </h1>
           <p style={{ fontSize: 13, color: "#52525b", margin: 0 }}>{agent.role}</p>
         </div>
-        <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#10b981" }}>{successCount}</div>
             <div style={{ fontSize: 10, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Runs</div>
@@ -160,6 +160,19 @@ export default async function AgentDetail({
             <div style={{ fontSize: 18, fontWeight: 800, color: "#a78bfa" }}>{centsToUSD(totalCost)}</div>
             <div style={{ fontSize: 10, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em" }}>Spent</div>
           </div>
+          <Link
+            href={`/dashboard/agents/${agent.id}/schedule`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px",
+              background: agent.scheduleEnabled ? "rgba(124,58,237,0.15)" : "rgba(255,255,255,0.05)",
+              border: `1px solid ${agent.scheduleEnabled ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.1)"}`,
+              borderRadius: 8, color: agent.scheduleEnabled ? "#a78bfa" : "#71717a",
+              fontSize: 12, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap",
+            }}
+          >
+            <CalendarClock size={13} />
+            {agent.scheduleEnabled ? "Scheduled" : "Schedule"}
+          </Link>
         </div>
       </div>
 
@@ -306,6 +319,12 @@ export default async function AgentDetail({
                         {cfg.label}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "#52525b" }}>
+                        {(r as any).triggeredBy === "cron" && (
+                          <span style={{ padding: "2px 7px", borderRadius: 6, background: "rgba(124,58,237,0.12)",
+                                         color: "#a78bfa", fontSize: 10, fontWeight: 600, border: "1px solid rgba(124,58,237,0.25)" }}>
+                            ⏰ cron
+                          </span>
+                        )}
                         <span>{centsToUSD(r.costCents)}</span>
                         <span>{r.tokensIn + r.tokensOut} tokens</span>
                         <span>{formatDate(r.createdAt)}</span>

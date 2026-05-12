@@ -4,9 +4,7 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "crons": [
-    {
-      "path": "/api/cron/social",
-      "schedule": "0 0 * * *"
-    }
+    { "path": "/api/cron/social",  "schedule": "0 0 * * *" },
+    { "path": "/api/cron/agents",  "schedule": "0 * * * *" }
   ]
 }

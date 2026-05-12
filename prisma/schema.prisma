@@ -77,6 +77,9 @@ model User {
   campaigns   Campaign[]
   socialPosts SocialPost[]
   feedbacks   Feedback[]
+
+  ownedWorkspace       Workspace?        @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[] @relation("WorkspaceMembers")
 }
 
 model SocialPost {
@@ -124,6 +127,14 @@ model Agent {
   temperature  Float    @default(0.4)
   tools        String   @default("[]")
   knowledge    String   @default("")
+
+  // Scheduled autonomous runs
+  scheduleEnabled  Boolean   @default(false)
+  scheduleCron     String?                    // "daily" | "every2days" | "weekly"
+  scheduleInput    String?                    // default prompt for scheduled runs
+  scheduleNextRun  DateTime?
+  scheduleTimezone String    @default("UTC")
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -131,20 +142,21 @@ model Agent {
 }
 
 model Run {
-  id         String    @id @default(cuid())
-  agentId    String
-  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  input      String
-  output     String?
-  status     String    @default("pending")
-  tokensIn   Int       @default(0)
-  tokensOut  Int       @default(0)
-  costCents  Int       @default(0)
-  error      String?
-  createdAt  DateTime  @default(now())
-  finishedAt DateTime?
+  id          String    @id @default(cuid())
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  input       String
+  output      String?
+  status      String    @default("pending")
+  tokensIn    Int       @default(0)
+  tokensOut   Int       @default(0)
+  costCents   Int       @default(0)
+  error       String?
+  triggeredBy String    @default("manual")   // "manual" | "cron"
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
 }
 
 // Cross-instance rate limiting — persisted in DB so serverless functions share state.
@@ -153,6 +165,44 @@ model RateLimit {
   key     String   @id
   count   Int      @default(0)
   resetAt DateTime
+}
+
+// Team workspace
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String   @unique
+  owner     User     @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  members WorkspaceMember[]
+  invites WorkspaceInvite[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation("WorkspaceMembers", fields: [userId], references: [id], onDelete: Cascade)
+  role        String    @default("member") // "owner" | "admin" | "member"
+  joinedAt    DateTime  @default(now())
+
+  @@unique([workspaceId, userId])
+}
+
+model WorkspaceInvite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  email       String
+  role        String    @default("member") // "admin" | "member"
+  token       String    @unique @default(cuid())
+  invitedById String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@unique([workspaceId, email])
 }
 
 // User feedback / reviews
