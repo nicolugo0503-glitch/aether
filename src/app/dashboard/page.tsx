@@ -33,13 +33,15 @@ function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up"
 export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
 
+  // Wrap all DB queries — DB cold starts or connection issues gracefully
+  // fall back to empty data instead of crashing the whole page.
   const [agents, recentRuns, totals, allCount, agentCount, recentSocial] = await Promise.all([
-    prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.run.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10, include: { agent: true } }),
-    prisma.run.aggregate({ where: { userId: user.id, status: "success" }, _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true }),
-    prisma.run.count({ where: { userId: user.id } }),
-    prisma.agent.count({ where: { userId: user.id } }),
-    prisma.socialPost.findMany({ where: { userId: user.id, status: { not: "draft" } }, orderBy: { createdAt: "desc" }, take: 6 }),
+    prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }).catch(() => []),
+    prisma.run.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10, include: { agent: true } }).catch(() => []),
+    prisma.run.aggregate({ where: { userId: user.id, status: "success" }, _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true }).catch(() => ({ _sum: { tokensIn: null, tokensOut: null, costCents: null }, _count: 0 })),
+    prisma.run.count({ where: { userId: user.id } }).catch(() => 0),
+    prisma.agent.count({ where: { userId: user.id } }).catch(() => 0),
+    prisma.socialPost.findMany({ where: { userId: user.id, status: { not: "draft" } }, orderBy: { createdAt: "desc" }, take: 6 }).catch(() => []),
   ]);
 
   // ── Build unified activity feed from real DB data ──────────────────

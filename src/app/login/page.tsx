@@ -10,27 +10,44 @@ import { ResendVerifyForm } from "./_components/resend-verify-form";
 
 async function login(formData: FormData) {
   "use server";
-  const hdrs = await headers();
-  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
-  // 10 attempts per 15 minutes per IP
-  if (await isRateLimited(`login:${ip}`, 10)) {
-    return redirect("/login?error=ratelimit");
-  }
+  try {
+    const hdrs = await headers();
+    const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
-  const email = String(formData.get("email") || "").toLowerCase().trim();
-  const password = String(formData.get("password") || "");
-  if (!email || !password) return redirect("/login?error=missing");
+    // 10 attempts per 15 minutes per IP
+    if (await isRateLimited(`login:${ip}`, 10)) {
+      return redirect("/login?error=ratelimit");
+    }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return redirect("/login?error=invalid");
+    const email = String(formData.get("email") || "").toLowerCase().trim();
+    const password = String(formData.get("password") || "");
+    if (!email || !password) return redirect("/login?error=missing");
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      return redirect("/login?error=invalid");
+    }
+    if (!user.emailVerified) {
+      return redirect("/login?error=unverified");
+    }
+    await createSession(user.id);
+    redirect("/dashboard");
+  } catch (err: unknown) {
+    // Re-throw Next.js redirect signals — they must not be caught
+    if (
+      err &&
+      typeof err === "object" &&
+      "digest" in err &&
+      typeof (err as { digest: unknown }).digest === "string" &&
+      (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw err;
+    }
+    // Any other error (DB down, JWT issue, etc.) → friendly error page
+    console.error("[login] unexpected error:", err);
+    return redirect("/login?error=server");
   }
-  if (!user.emailVerified) {
-    return redirect("/login?error=unverified");
-  }
-  await createSession(user.id);
-  redirect("/dashboard");
 }
 
 export default async function LoginPage({
@@ -42,6 +59,7 @@ export default async function LoginPage({
     error === "invalid"    ? "Invalid email or password — try again." :
     error === "missing"    ? "Please fill in all fields." :
     error === "ratelimit"  ? "Too many attempts. Please wait 15 minutes and try again." :
+    error === "server"     ? "Something went wrong on our end. Please try again in a moment." :
     null;
 
   return (
