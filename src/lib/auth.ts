@@ -3,16 +3,20 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 
-const authSecret = process.env.AUTH_SECRET;
-if (!authSecret) {
-  throw new Error(
-    "[Aether] AUTH_SECRET environment variable is not set. " +
-    "Generate a strong random value and add it to your Vercel environment variables.",
-  );
-}
-const SECRET = new TextEncoder().encode(authSecret);
 const COOKIE_NAME = "aether_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
+
+/** Lazy secret accessor — throws at CALL TIME, never at import time */
+function getSecret(): Uint8Array {
+  const authSecret = process.env.AUTH_SECRET;
+  if (!authSecret) {
+    throw new Error(
+      "[Aether] AUTH_SECRET environment variable is not set. " +
+      "Add it to your Vercel environment variables and redeploy.",
+    );
+  }
+  return new TextEncoder().encode(authSecret);
+}
 
 export async function hashPassword(pw: string) {
   return bcrypt.hash(pw, 10);
@@ -26,7 +30,7 @@ export async function createSession(userId: string) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE_SECONDS}s`)
-    .sign(SECRET);
+    .sign(getSecret());
 
   const jar = await cookies();
   jar.set(COOKIE_NAME, token, {
@@ -48,7 +52,7 @@ export async function getCurrentUser() {
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, getSecret());
     const user = await prisma.user.findUnique({
       where: { id: String(payload.sub) },
     });
