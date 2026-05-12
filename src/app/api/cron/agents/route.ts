@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
-import OpenAI from "openai";
+import { runAgent } from "@/lib/ai";
 
 // Vercel: allow up to 5 minutes for this cron job
 export const maxDuration = 300;
@@ -81,30 +81,13 @@ export async function GET(req: NextRequest) {
     });
 
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        { role: "system", content: agent.systemPrompt },
-      ];
-      if (agent.knowledge?.trim()) {
-        messages.push({
-          role: "system",
-          content: `Knowledge base:\n${agent.knowledge}`,
-        });
-      }
-      messages.push({ role: "user", content: input });
-
-      const completion = await openai.chat.completions.create({
-        model: agent.model || "gpt-4o-mini",
-        temperature: agent.temperature ?? 0.4,
-        messages,
+      const { output, tokensIn, tokensOut, costCents } = await runAgent({
+        systemPrompt: agent.systemPrompt,
+        knowledge: agent.knowledge,
+        input,
+        model: agent.model,
+        temperature: agent.temperature,
       });
-
-      const output = completion.choices[0]?.message?.content ?? "";
-      const tokensIn  = completion.usage?.prompt_tokens     ?? 0;
-      const tokensOut = completion.usage?.completion_tokens ?? 0;
-      // ~$0.00015 / token for gpt-4o-mini — rough cost in cents
-      const costCents = Math.round(((tokensIn + tokensOut) * 0.00015) * 100) / 100;
 
       await prisma.run.update({
         where: { id: run.id },
