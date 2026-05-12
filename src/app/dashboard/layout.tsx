@@ -9,13 +9,14 @@ import { ChatWidget } from "@/components/widgets/ChatWidget";
 import { FeedbackWidget } from "@/components/widgets/FeedbackWidget";
 
 const NAV = [
-  { href: "/dashboard",           label: "Overview",     icon: "LayoutDashboard", exact: true },
-  { href: "/dashboard/agents",    label: "AI Employees", icon: "Bot" },
-  { href: "/dashboard/campaigns", label: "Campaigns",    icon: "Megaphone" },
-  { href: "/dashboard/social",    label: "Social Media", icon: "Share2" },
-  { href: "/dashboard/runs",      label: "Runs",         icon: "ListChecks" },
-  { href: "/dashboard/billing",   label: "Billing",      icon: "CreditCard" },
-  { href: "/dashboard/settings",  label: "Settings",     icon: "Settings" },
+  { href: "/dashboard",             label: "Overview",     icon: "LayoutDashboard", exact: true },
+  { href: "/dashboard/agents",      label: "AI Employees", icon: "Bot" },
+  { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
+  { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
+  { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
+  { href: "/dashboard/referrals",   label: "Referrals",    icon: "Gift" },
+  { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
+  { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -15,10 +15,30 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Send via email link as fallback (no backend form endpoint yet)
-    await new Promise(r => setTimeout(r, 800));
-    setLoading(false);
-    setSent(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setSent(true);
+      } else {
+        // Fallback: open mailto link so the message isn't lost
+        const subject = encodeURIComponent(form.subject || "Contact from Aether website");
+        const body = encodeURIComponent(`Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`);
+        window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+        setSent(true);
+      }
+    } catch {
+      // Network failure: fallback to mailto
+      const subject = encodeURIComponent(form.subject || "Contact from Aether website");
+      const body = encodeURIComponent(`Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`);
+      window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+      setSent(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -47,6 +47,11 @@ model User {
   twitterAccessToken  String?
   twitterAccessSecret String?
 
+  // Referral system
+  referralCode      String?   @unique           // unique code this user shares
+  referredBy        String?                      // referralCode of who referred them
+  referralBonusRuns Int       @default(0)        // total bonus runs earned via referrals
+
   // Email verification
   emailVerified     Boolean   @default(false)
   emailVerifyToken  String?   @unique

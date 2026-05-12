@@ -12,6 +12,7 @@ async function signup(formData: FormData) {
   "use server";
   const hdrs = await headers();
   const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const refCode = String(formData.get("refCode") || "").trim() || null;
 
   if (await isRateLimited(`signup:${ip}`, 5, 60 * 60 * 1000)) {
     return redirect("/signup?error=ratelimit");
@@ -33,6 +34,13 @@ async function signup(formData: FormData) {
 
   const verifyToken = crypto.randomBytes(32).toString("hex");
 
+  // Validate referral code if provided
+  let validRefCode: string | null = null;
+  if (refCode) {
+    const referrer = await prisma.user.findUnique({ where: { referralCode: refCode }, select: { id: true } });
+    if (referrer) validRefCode = refCode;
+  }
+
   await prisma.user.create({
     data: {
       email,
@@ -40,6 +48,7 @@ async function signup(formData: FormData) {
       passwordHash: await hashPassword(password),
       emailVerified: false,
       emailVerifyToken: verifyToken,
+      referredBy: validRefCode,
       agents: {
         createMany: {
           data: [
@@ -114,8 +123,8 @@ async function signup(formData: FormData) {
 
 export default async function SignupPage({
   searchParams,
-}: { searchParams: Promise<{ error?: string; verified?: string }> }) {
-  const { error, verified } = await searchParams;
+}: { searchParams: Promise<{ error?: string; verified?: string; ref?: string }> }) {
+  const { error, verified, ref } = await searchParams;
 
   if (verified === "pending") {
     return (
@@ -243,8 +252,17 @@ export default async function SignupPage({
               </div>
             )}
 
+            {/* Referral banner */}
+            {ref && (
+              <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5 fill-emerald-400 shrink-0" />
+                You were invited! Sign up and you&apos;ll both get <strong className="text-emerald-200">+25 free runs</strong>.
+              </div>
+            )}
+
             {/* Form */}
             <form action={signup} className="space-y-4">
+              {ref && <input type="hidden" name="refCode" value={ref} />}
               <div>
                 <label className="label mb-1.5 block">Your name</label>
                 <input className="input" type="text" name="name" placeholder="Alex Chen" />

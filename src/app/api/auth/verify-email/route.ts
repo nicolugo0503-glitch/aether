@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT } from "jose";
 import { prisma } from "@/lib/db";
+import { processReferralBonus, ensureReferralCode } from "@/lib/referral";
 
 const authSecret = process.env.AUTH_SECRET;
 if (!authSecret) {
@@ -34,6 +35,10 @@ export async function GET(req: NextRequest) {
       where: { id: user.id },
       data: { emailVerified: true, emailVerifyToken: null },
     });
+
+    // Generate referral code + process referral bonus (fire-and-forget)
+    ensureReferralCode(user.id).catch(console.error);
+    processReferralBonus(user.id).catch(console.error);
 
     // Build JWT
     const jwt = await new SignJWT({ sub: user.id })
