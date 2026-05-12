@@ -48,7 +48,10 @@ export async function GET(req: NextRequest) {
       .sign(SECRET);
 
     // Set the cookie directly on the redirect response
-    const response = NextResponse.redirect(`${base}/dashboard`);
+    // Redirect new users to onboarding; already-onboarded users go straight to dashboard
+    const updatedUser = await prisma.user.findUnique({ where: { id: user.id }, select: { onboardingComplete: true } });
+    const destination = updatedUser?.onboardingComplete ? `${base}/dashboard` : `${base}/onboarding`;
+    const response = NextResponse.redirect(destination);
     response.cookies.set(COOKIE_NAME, jwt, {
       httpOnly: true,
       sameSite: "lax",

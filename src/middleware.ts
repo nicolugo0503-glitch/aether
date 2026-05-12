@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  if (req.nextUrl.pathname.startsWith("/dashboard")) {
+  const protectedPaths = ["/dashboard", "/onboarding"];
+  const isProtected = protectedPaths.some(p => req.nextUrl.pathname.startsWith(p));
+
+  if (isProtected) {
     const token = req.cookies.get("aether_session")?.value;
     if (!token) {
       const url = req.nextUrl.clone();
@@ -13,5 +16,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/onboarding"],
 };

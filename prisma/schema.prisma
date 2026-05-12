@@ -52,6 +52,9 @@ model User {
   referredBy        String?                      // referralCode of who referred them
   referralBonusRuns Int       @default(0)        // total bonus runs earned via referrals
 
+  // Onboarding
+  onboardingComplete Boolean  @default(false)
+
   // Email verification
   emailVerified     Boolean   @default(false)
   emailVerifyToken  String?   @unique
