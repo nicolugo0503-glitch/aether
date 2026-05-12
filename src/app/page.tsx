@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Shield, Star, Zap } from "lucide-react";
+import { ArrowRight, Check, Shield, Star, Zap, X, ChevronDown, ChevronUp, Clock, DollarSign, TrendingUp, Users } from "lucide-react";
 import { HeroSection } from "@/components/landing/hero";
 import { ActivityTicker } from "@/components/landing/ticker";
 import { BentoGrid } from "@/components/landing/bento";
@@ -7,6 +7,9 @@ import { PlatformsSection } from "@/components/landing/platforms";
 import { AgentsShowcase } from "@/components/landing/agents";
 import { AetherMark } from "@/components/ui/logo";
 import { MobileNav } from "@/components/landing/mobile-nav";
+import { ROICalculator } from "@/components/landing/roi-calculator";
+import { FAQSection } from "@/components/landing/faq";
+import { ComparisonSection } from "@/components/landing/comparison";
 
 export default function HomePage() {
   return (
@@ -44,6 +47,26 @@ export default function HomePage() {
 
       {/* ── LIVE TICKER ──────────────────────────────── */}
       <ActivityTicker />
+
+      {/* ── SOCIAL PROOF STATS BAR ───────────────────── */}
+      <section className="py-14 border-y" style={{ borderColor: "rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)" }}>
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: "2,400+", label: "Teams using Aether", icon: "👥" },
+              { value: "847K+", label: "AI actions completed", icon: "⚡" },
+              { value: "94%",   label: "Email delivery rate",  icon: "📬" },
+              { value: "10 min", label: "Average setup time",  icon: "🚀" },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="text-3xl md:text-4xl font-black gradient-text mb-1">{s.value}</div>
+                <div className="text-zinc-600 text-sm">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── LOGOS ────────────────────────────────────── */}
       <section className="py-20">
@@ -118,6 +141,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── COMPARISON ───────────────────────────────── */}
+      <ComparisonSection />
+
       {/* ── TESTIMONIALS ─────────────────────────────── */}
       <section className="py-20 overflow-hidden">
         <div className="max-w-6xl mx-auto px-6">
@@ -145,6 +171,12 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── ROI CALCULATOR ───────────────────────────── */}
+      <ROICalculator />
+
+      {/* ── FAQ ──────────────────────────────────────── */}
+      <FAQSection />
 
       {/* ── PRICING ──────────────────────────────────── */}
       <section id="pricing" className="py-32">
