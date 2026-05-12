@@ -33,12 +33,13 @@ export async function POST(req: NextRequest) {
 
     // ── Enforce monthly run limit ─────────────────────────────────
     const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
-    if (user.runsUsedThisPeriod >= planLimits.monthlyRuns) {
+    const effectiveLimit = planLimits.monthlyRuns + (user.referralBonusRuns ?? 0);
+    if (user.runsUsedThisPeriod >= effectiveLimit) {
       return NextResponse.json({
-        error: `Monthly run limit reached (${planLimits.monthlyRuns} runs on ${planLimits.label} plan). Upgrade at /dashboard/billing.`,
+        error: `Monthly run limit reached (${effectiveLimit} runs on ${planLimits.label} plan). Upgrade at /dashboard/billing.`,
       }, { status: 402 });
     }
-    const runsRemaining = planLimits.monthlyRuns - user.runsUsedThisPeriod;
+    const runsRemaining = effectiveLimit - user.runsUsedThisPeriod;
 
     // Mark campaign as running
     await prisma.campaign.update({

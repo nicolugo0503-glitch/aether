@@ -49,7 +49,8 @@ export default async function DashboardHome() {
   const seed         = user.id.charCodeAt(0) + user.id.charCodeAt(1);
   const isPro        = user.plan !== "FREE";
   const runsUsed     = user.runsUsedThisPeriod ?? 0;
-  const pct          = Math.min((runsUsed / limits.monthlyRuns) * 100, 100);
+  const effectiveRunLimit = limits.monthlyRuns + (user.referralBonusRuns ?? 0);
+  const pct          = Math.min((runsUsed / effectiveRunLimit) * 100, 100);
   const hour         = new Date().getHours();
   const greeting     = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const agentStubs   = agents.map(a => ({ id: a.id, name: a.name, role: a.role }));
@@ -57,7 +58,7 @@ export default async function DashboardHome() {
   const STAT_CARDS = [
     { label: "AI Employees",     value: agentCount,                  suffix: `/ ${limits.agents}`,       icon: Bot,          color: "#7c3aed", spark: genSparkline(seed,      10, "up"),   trend: "up"   as const, trendLabel: "active now",   href: "/dashboard/agents"  },
     { label: "Successful Runs",  value: successCount,                suffix: "",                          icon: CheckCircle2, color: "#10b981", spark: genSparkline(seed + 3,  10, "up"),   trend: "up"   as const, trendLabel: "all time",     href: "/dashboard/runs"    },
-    { label: "Runs This Period", value: runsUsed,                    suffix: `/ ${limits.monthlyRuns}`,  icon: Activity,     color: "#f59e0b", spark: genSparkline(seed + 7,  10, "flat"), trend: "flat" as const, trendLabel: "this period",  href: "/dashboard/runs"    },
+    { label: "Runs This Period", value: runsUsed,                    suffix: `/ ${effectiveRunLimit}`,   icon: Activity,     color: "#f59e0b", spark: genSparkline(seed + 7,  10, "flat"), trend: "flat" as const, trendLabel: "this period",  href: "/dashboard/runs"    },
     { label: "Est. Spend",       value: Math.round(totalCost / 100), suffix: "",   prefix: "$",          icon: TrendingUp,   color: "#ec4899", spark: genSparkline(seed + 11, 10, "up"),   trend: "up"   as const, trendLabel: "lifetime",     href: "/dashboard/billing" },
   ];
 

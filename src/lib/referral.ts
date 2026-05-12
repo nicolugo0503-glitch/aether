@@ -85,22 +85,15 @@ export async function processReferralBonus(newUserId: string) {
   if (!referrer) return;
 
   // Award bonus to both in parallel
+  // referralBonusRuns is added on top of the plan's monthlyRuns cap everywhere
   await Promise.all([
-    // Referrer gets +25 runs
     prisma.user.update({
       where: { id: referrer.id },
-      data: {
-        referralBonusRuns: { increment: REFERRAL_BONUS_RUNS },
-        runsUsedThisPeriod: { decrement: REFERRAL_BONUS_RUNS }, // effectively adds runs
-      },
+      data: { referralBonusRuns: { increment: REFERRAL_BONUS_RUNS } },
     }),
-    // New user gets +25 runs
     prisma.user.update({
       where: { id: newUserId },
-      data: {
-        referralBonusRuns: { increment: REFERRAL_BONUS_RUNS },
-        runsUsedThisPeriod: { decrement: REFERRAL_BONUS_RUNS },
-      },
+      data: { referralBonusRuns: { increment: REFERRAL_BONUS_RUNS } },
     }),
   ]).catch(console.error);
 }

@@ -17,7 +17,8 @@ export async function POST(
     return NextResponse.json({ error: "input required" }, { status: 400 });
   }
 
-  if (user.runsUsedThisPeriod >= PLAN_LIMITS[toPlanKey(user.plan)].monthlyRuns) {
+  const effectiveLimit = PLAN_LIMITS[toPlanKey(user.plan)].monthlyRuns + (user.referralBonusRuns ?? 0);
+  if (user.runsUsedThisPeriod >= effectiveLimit) {
     return NextResponse.json({ error: "run limit reached" }, { status: 402 });
   }
 

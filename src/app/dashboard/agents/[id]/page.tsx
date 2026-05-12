@@ -38,8 +38,8 @@ async function triggerRun(formData: FormData) {
   const input = String(formData.get("input") || "").trim();
   if (!input) redirect(`/dashboard/agents/${id}`);
 
-  const limit = PLAN_LIMITS[toPlanKey(user.plan)].monthlyRuns;
-  if (user.runsUsedThisPeriod >= limit) {
+  const effectiveLimit = PLAN_LIMITS[toPlanKey(user.plan)].monthlyRuns + (user.referralBonusRuns ?? 0);
+  if (user.runsUsedThisPeriod >= effectiveLimit) {
     redirect("/dashboard/billing?error=run_limit");
   }
 

@@ -241,6 +241,7 @@ export default async function BillingPage({
 
   // runsThisPeriod = authoritative monthly counter tracked by the system
   const runsThisPeriod = user.runsUsedThisPeriod ?? 0;
+  const effectiveRunLimit = plan.monthlyRuns + (user.referralBonusRuns ?? 0);
 
   const totalRuns = await prisma.run.count({ where: { userId: user.id } });
   const costData = await prisma.run.aggregate({
@@ -273,7 +274,7 @@ export default async function BillingPage({
 
   const estSpend = ((costData._sum.costCents || 0) / 100).toFixed(2);
   // usagePercent uses runsThisPeriod (the per-billing-cycle counter), NOT all-time totalRuns
-  const usagePercent = Math.min((runsThisPeriod / plan.monthlyRuns) * 100, 100);
+  const usagePercent = Math.min((runsThisPeriod / effectiveRunLimit) * 100, 100);
   const agentPercent = Math.min((agents.length / plan.agents) * 100, 100);
 
   const CSS = `
@@ -1016,7 +1017,7 @@ document.addEventListener('mousemove', function(e) {
             <div className="usage-label-bill">
               <span>This Period Usage</span>
               <span>
-                <ChromaticNumber value={`${runsThisPeriod} / ${plan.monthlyRuns}`} />
+                <ChromaticNumber value={`${runsThisPeriod} / ${effectiveRunLimit}`} />
               </span>
             </div>
             <div className="usage-bar-bill">
@@ -1138,7 +1139,7 @@ document.addEventListener('mousemove', function(e) {
               />
             </div>
             <div style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#a0aec0" }}>
-              {runsThisPeriod} / {plan.monthlyRuns} runs
+              {runsThisPeriod} / {effectiveRunLimit} runs
             </div>
           </div>
 
