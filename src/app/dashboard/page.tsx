@@ -6,13 +6,13 @@ import {
   Bot, Play, Gauge, TrendingUp, TrendingDown, Minus,
   ChevronRight, Settings, Megaphone, Share2,
   ArrowUpRight, CheckCircle2, Plus, Sparkles,
-  Activity, ListChecks, CreditCard, Zap,
+  Activity, ListChecks, CreditCard, Zap, BarChart3,
 } from "lucide-react";
 import { Aurora }          from "./_components/aurora";
 import { ParticleCanvas } from "./_components/particle-canvas";
 import { Sparkline }       from "./_components/sparkline";
 import { AnimatedCounter } from "./_components/animated-counter";
-import { LiveFeed }        from "./_components/live-feed";
+import { LiveFeed, type FeedItem } from "./_components/live-feed";
 import { CommandPalette }  from "./_components/command-palette";
 import { AiAssistant }     from "./_components/ai-assistant";
 import { HoloCard }        from "./_components/holo-card";
@@ -33,13 +33,51 @@ function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up"
 export default async function DashboardHome() {
   const user = (await getCurrentUser())!;
 
-  const [agents, recentRuns, totals, allCount, agentCount] = await Promise.all([
+  const [agents, recentRuns, totals, allCount, agentCount, recentSocial] = await Promise.all([
     prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.run.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10, include: { agent: true } }),
     prisma.run.aggregate({ where: { userId: user.id, status: "success" }, _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true }),
     prisma.run.count({ where: { userId: user.id } }),
     prisma.agent.count({ where: { userId: user.id } }),
+    prisma.socialPost.findMany({ where: { userId: user.id, status: { not: "draft" } }, orderBy: { createdAt: "desc" }, take: 6 }),
   ]);
+
+  // ── Build unified activity feed from real DB data ──────────────────
+  function agentColor(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes("ava"))  return "#7c3aed";
+    if (n.includes("rex"))  return "#0891b2";
+    if (n.includes("sage")) return "#059669";
+    if (n.includes("opus")) return "#f59e0b";
+    return "#8b5cf6";
+  }
+
+  const feedEvents: FeedItem[] = [
+    ...recentRuns.map(r => ({
+      id: r.id,
+      type: "run" as const,
+      agentName: r.agent.name.split("—")[0].trim(),
+      agentColor: agentColor(r.agent.name),
+      description: r.input.length > 90 ? r.input.slice(0, 87) + "…" : r.input,
+      status: (r.status === "success" ? "success" : r.status === "error" ? "error" : "running") as FeedItem["status"],
+      ts: r.createdAt.getTime(),
+      costCents: r.costCents,
+    })),
+    ...recentSocial.map(p => {
+      const platforms = (() => { try { return (JSON.parse(p.platforms) as string[]).join(", "); } catch { return ""; } })();
+      const st: FeedItem["status"] = p.status === "posted" ? "posted" : p.status === "partial" ? "partial" : p.status === "error" ? "error" : "running";
+      return {
+        id: p.id,
+        type: "social" as const,
+        agentName: "Social",
+        agentColor: "#ec4899",
+        description: p.topic.length > 90 ? p.topic.slice(0, 87) + "…" : p.topic,
+        status: st,
+        ts: (p.postedAt ?? p.createdAt).getTime(),
+        platforms,
+      };
+    }),
+  ].sort((a, b) => b.ts - a.ts).slice(0, 14);
 
   const limits       = PLAN_LIMITS[toPlanKey(user.plan)];
   const displayName  = user.name || user.email.split("@")[0];
@@ -366,7 +404,7 @@ export default async function DashboardHome() {
                     <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", animation: "liveDot 1.8s ease infinite" }} />
                     <span style={{ fontSize: 9, fontWeight: 800, color: "#10b981", letterSpacing: "0.08em" }}>LIVE</span>
                   </div>
-                  <span style={{ fontSize: 10, color: "#3f3f46", fontFamily: "monospace" }}>{allCount} executions</span>
+                  <span style={{ fontSize: 10, color: "#3f3f46", fontFamily: "monospace" }}>{allCount + recentSocial.length} events</span>
                 </div>
                 <Link href="/dashboard/runs" style={{
                   display: "flex", alignItems: "center", gap: 4,
@@ -379,23 +417,7 @@ export default async function DashboardHome() {
                 </Link>
               </div>
 
-              {recentRuns.length === 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 16,
-                    background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
-                    boxShadow: "0 0 30px rgba(124,58,237,0.15)",
-                    animation: "floatY 3s ease-in-out infinite",
-                  }}>
-                    <Sparkles size={22} color="#7c3aed" />
-                  </div>
-                  <p style={{ fontSize: 14, color: "#d4d4d8", fontWeight: 600, marginBottom: 5 }}>No runs yet</p>
-                  <p style={{ fontSize: 12, color: "#52525b" }}>Your AI employees await their first assignment.</p>
-                </div>
-              ) : (
-                <LiveFeed initialCount={recentRuns.length} />
-              )}
+              <LiveFeed initialEvents={feedEvents} />
             </div>
 
             {/* SIDEBAR */}
@@ -412,7 +434,7 @@ export default async function DashboardHome() {
                     { href: "/dashboard/agents",    icon: Bot,       label: "AI Employees", color: "#7c3aed" },
                     { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns",    color: "#ec4899" },
                     { href: "/dashboard/social",    icon: Share2,    label: "Social Media", color: "#3b82f6" },
-                    { href: "/dashboard/settings",  icon: Settings,  label: "Settings",     color: "#10b981" },
+                    { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics",    color: "#f59e0b" },
                   ].map(q => (
                     <HoloCard key={q.href} intensity={10} style={{ borderRadius: 12 }}>
                       <Link href={q.href} style={{
@@ -522,6 +544,7 @@ export default async function DashboardHome() {
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingBottom: 8 }}>
             {[
               { href: "/dashboard/runs",      icon: ListChecks, label: "All Runs" },
+              { href: "/dashboard/analytics", icon: BarChart3,  label: "Analytics" },
               { href: "/dashboard/campaigns", icon: Megaphone,  label: "Campaigns" },
               { href: "/dashboard/social",    icon: Share2,     label: "Social" },
               { href: "/dashboard/billing",   icon: CreditCard, label: "Billing" },

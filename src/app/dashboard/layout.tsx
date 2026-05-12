@@ -14,6 +14,7 @@ const NAV = [
   { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
   { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
   { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
+  { href: "/dashboard/analytics",   label: "Analytics",    icon: "BarChart3" },
   { href: "/dashboard/referrals",   label: "Referrals",    icon: "Gift" },
   { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
   { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
