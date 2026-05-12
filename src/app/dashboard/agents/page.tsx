@@ -374,6 +374,42 @@ document.addEventListener('mousemove',function(e){
           </div>
         </div>
 
+        {/* ── TEMPLATES BANNER ── */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+          padding: "18px 24px", borderRadius: 16, marginBottom: "2rem",
+          background: "linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(168,85,247,0.06) 100%)",
+          border: "1px solid rgba(124,58,237,0.3)",
+          boxShadow: "0 0 40px rgba(124,58,237,0.1)",
+          position: "relative", zIndex: 2,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 13,
+              background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.35)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 0 20px rgba(124,58,237,0.3)",
+            }}>
+              <Sparkles size={20} style={{ color: "#a855f7" }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 900, color: "#e0e7ff", fontSize: "1rem" }}>Agent Marketplace — 17 Ready-to-Deploy Templates</div>
+              <div style={{ fontSize: "0.8rem", color: "#6d28d9", marginTop: 2 }}>SDR · Copywriter · Support · Analyst · Operations — one click to deploy</div>
+            </div>
+          </div>
+          <Link href="/dashboard/agents/templates" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "10px 20px", borderRadius: 12, textDecoration: "none",
+            background: "linear-gradient(135deg,#7c3aed,#a855f7)",
+            color: "#fff", fontWeight: 800, fontSize: "0.85rem",
+            boxShadow: "0 0 24px rgba(124,58,237,0.5)",
+            flexShrink: 0,
+          }}>
+            <Sparkles size={14} />
+            Browse Templates
+          </Link>
+        </div>
+
         {/* ── STATS GRID ── */}
         <div className="stats-grid-ag">
           {[
@@ -578,6 +614,7 @@ document.addEventListener('mousemove',function(e){
 
         <div className="nav-strip-ag">
           <Link href="/dashboard" className="nav-link-ag"><Activity size={16} />Overview</Link>
+          <Link href="/dashboard/agents/templates" className="nav-link-ag" style={{ background: "rgba(124,58,237,0.18)", border: "1px solid rgba(124,58,237,0.4)", color: "#c4b5fd" }}><Sparkles size={16} />Browse Templates</Link>
           <Link href="/dashboard/runs" className="nav-link-ag"><Zap size={16} />Runs</Link>
           <Link href="/dashboard/billing" className="nav-link-ag"><Sparkles size={16} />Billing</Link>
           <Link href="/dashboard/settings" className="nav-link-ag"><Bot size={16} />Settings</Link>

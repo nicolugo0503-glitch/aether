@@ -1374,11 +1374,12 @@ export default function SocialPage() {
         {/* ── NAV STRIP ── */}
         <nav className="soc-nav-strip">
           {[
-            { href: "/dashboard",          label: "Overview" },
-            { href: "/dashboard/agents",   label: "AI Employees" },
-            { href: "/dashboard/runs",     label: "Run History" },
-            { href: "/dashboard/settings", label: "Settings" },
-            { href: "/dashboard/billing",  label: "Billing" },
+            { href: "/dashboard",                   label: "Overview"     },
+            { href: "/dashboard/social/calendar",   label: "📅 Calendar"  },
+            { href: "/dashboard/agents",            label: "AI Employees" },
+            { href: "/dashboard/runs",              label: "Run History"  },
+            { href: "/dashboard/settings",          label: "Settings"     },
+            { href: "/dashboard/billing",           label: "Billing"      },
           ].map(link => (
             <a key={link.href} href={link.href} className="soc-nav-btn">{link.label}</a>
           ))}
