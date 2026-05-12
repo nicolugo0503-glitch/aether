@@ -497,7 +497,7 @@ export default async function DashboardHome() {
                   </span>
                 </div>
 
-                <RadialGauge value={runsUsed} max={limits.monthlyRuns} label="runs" size={110} />
+                <RadialGauge value={runsUsed} max={effectiveRunLimit} label="runs" size={110} />
 
                 {!isPro && (
                   <Link href="/dashboard/billing" className="btn-shine" style={{
