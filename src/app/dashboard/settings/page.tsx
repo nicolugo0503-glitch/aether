@@ -578,9 +578,9 @@ export default async function SettingsPage({
                 <div className="set-section-body">
                   <form action={saveApiKeys}>
                     {[
-                      { label: "Resend API Key",  name: "resendApiKey",  type: "password" as const, value: (user as Record<string, unknown>).resendApiKey as string ?? "",  placeholder: "re_...",              desc: "Email campaigns", color: "#f59e0b" },
-                      { label: "From Email",       name: "fromEmail",     type: "email"    as const, value: (user as Record<string, unknown>).fromEmail    as string ?? "",  placeholder: "you@yourdomain.com",  desc: "Sender address",  color: "#10b981" },
-                      { label: "Serper API Key",   name: "serperApiKey",  type: "password" as const, value: (user as Record<string, unknown>).serperApiKey as string ?? "",  placeholder: "serper_...",          desc: "Web research",    color: "#3b82f6" },
+                      { label: "Resend API Key",  name: "resendApiKey",  type: "password" as const, isSet: !!((user as Record<string, unknown>).resendApiKey),  placeholder: "re_...",              desc: "Email campaigns", color: "#f59e0b" },
+                      { label: "From Email",       name: "fromEmail",     type: "email"    as const, isSet: !!((user as Record<string, unknown>).fromEmail),     placeholder: "you@yourdomain.com",  desc: "Sender address",  color: "#10b981" },
+                      { label: "Serper API Key",   name: "serperApiKey",  type: "password" as const, isSet: !!((user as Record<string, unknown>).serperApiKey),  placeholder: "serper_...",          desc: "Web research",    color: "#3b82f6" },
                     ].map(field => (
                       <div key={field.name} style={{ marginBottom: 16 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
@@ -592,13 +592,22 @@ export default async function SettingsPage({
                           }}>
                             {field.desc}
                           </span>
+                          {field.isSet && (
+                            <span style={{
+                              fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                              background: "rgba(16,185,129,0.1)", color: "#10b981",
+                              border: "1px solid rgba(16,185,129,0.25)", letterSpacing: "0.05em",
+                            }}>
+                              ● CONFIGURED
+                            </span>
+                          )}
                         </div>
                         <input
                           className="set-input"
                           name={field.name}
                           type={field.type}
-                          defaultValue={field.value}
-                          placeholder={field.placeholder}
+                          defaultValue=""
+                          placeholder={field.isSet ? "Leave blank to keep current value" : field.placeholder}
                           style={{ marginBottom: 0 }}
                         />
                       </div>

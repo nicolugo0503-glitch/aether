@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, hashPassword, verifyPassword, destroySession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { stripe } from "@/lib/stripe";
 
 export async function saveApiKeys(formData: FormData) {
   const user = await getCurrentUser();
@@ -62,6 +63,17 @@ export async function changePassword(formData: FormData) {
 export async function deleteAccount() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Cancel active Stripe subscription before deleting the user
+  // so we stop billing them immediately (idempotent — safe if already cancelled)
+  if (user.stripeSubscriptionId) {
+    try {
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+    } catch (err) {
+      // Log but don't block deletion — the subscription may already be cancelled
+      console.error("[deleteAccount] Failed to cancel Stripe subscription:", err);
+    }
+  }
 
   await prisma.user.delete({ where: { id: user.id } });
   await destroySession();

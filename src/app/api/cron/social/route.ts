@@ -4,6 +4,9 @@ import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import { postToFacebook, postToInstagram, postToTwitter } from "@/lib/social";
 import OpenAI from "openai";
 
+// Vercel: allow up to 5 minutes for this cron job (image generation + multiple social posts)
+export const maxDuration = 300;
+
 const RANDOM_TOPICS = [
   "How AI is changing the way businesses hire",
   "5 ways automation saves you 10+ hours a week",

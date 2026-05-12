@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
     });
     if (!campaign) return NextResponse.json({ error: "campaign not found" }, { status: 404 });
 
-    const agent = await prisma.agent.findFirst({ where: { id: campaign.agentId } });
+    // Ownership check: agent must belong to the same user to prevent cross-user prompt exfiltration
+    const agent = await prisma.agent.findFirst({ where: { id: campaign.agentId, userId: user.id } });
     if (!agent) return NextResponse.json({ error: "agent not found" }, { status: 404 });
 
     // Check required integrations

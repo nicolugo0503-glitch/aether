@@ -33,12 +33,19 @@ const DEFAULT_AGENTS = [
   },
 ];
 
-export async function GET(req: NextRequest) {
+// Require POST (not GET) to prevent CSRF — GET mutations are unsafe.
+export async function POST(req: NextRequest) {
   // Reject all requests if ADMIN_SECRET env var is not configured
   if (!SECRET) {
     return NextResponse.json({ error: "ADMIN_SECRET env var not configured" }, { status: 500 });
   }
-  const secret = req.nextUrl.searchParams.get("secret");
+  let secret: string | undefined;
+  try {
+    const body = await req.json();
+    secret = body.secret;
+  } catch {
+    secret = req.nextUrl.searchParams.get("secret") ?? undefined;
+  }
   if (secret !== SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -68,8 +68,10 @@ export async function POST(req: NextRequest) {
       }
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        // Reset the usage window on successful renewal.
-        if (invoice.subscription) {
+        // Reset the usage window ONLY on subscription renewals, not the initial payment
+        // (checkout.session.completed already handles the initial reset on new subscriptions).
+        // Resetting on upgrades mid-period would incorrectly wipe usage already consumed.
+        if (invoice.subscription && invoice.billing_reason === "subscription_cycle") {
           await prisma.user.updateMany({
             where: { stripeSubscriptionId: invoice.subscription as string },
             data: { runsUsedThisPeriod: 0 },

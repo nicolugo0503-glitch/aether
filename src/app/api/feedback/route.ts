@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // 20 feedback submissions per hour per IP (generous but prevents spam)
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (await isRateLimited(`feedback:${ip}`, 20, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many requests. Please wait before trying again." }, { status: 429 });
+  }
+
   try {
     const { rating, message, page } = await req.json();
 

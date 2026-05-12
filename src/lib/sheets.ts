@@ -20,14 +20,47 @@ export async function readSheetLeads(sheetUrl: string): Promise<Lead[]> {
   if (!res.ok) throw new Error("Could not read sheet. Make sure it is shared as 'Anyone with the link can view'.");
 
   const csv = await res.text();
-  const lines = csv.trim().split("\n");
-  if (lines.length < 2) throw new Error("Sheet has no data rows");
 
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/"/g, ""));
+  // RFC 4180-compliant CSV parser that handles quoted fields with commas and newlines
+  function parseCSV(raw: string): string[][] {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let field = "";
+    let inQuotes = false;
+    let i = 0;
+    const text = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+    while (i < text.length) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          // peek ahead for escaped quote
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false;
+        } else {
+          field += ch;
+        }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ",") { row.push(field.trim()); field = ""; }
+        else if (ch === "\n") { row.push(field.trim()); rows.push(row); row = []; field = ""; }
+        else { field += ch; }
+      }
+      i++;
+    }
+    // last field/row
+    if (field || row.length) { row.push(field.trim()); rows.push(row); }
+    return rows;
+  }
+
+  const rows = parseCSV(csv);
+  if (rows.length < 2) throw new Error("Sheet has no data rows");
+
+  const headers = rows[0].map((h) => h.toLowerCase().replace(/"/g, ""));
   const leads: Lead[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((v) => v.trim().replace(/"/g, ""));
+  for (let i = 1; i < rows.length; i++) {
+    const values = rows[i];
     const lead: Lead = { name: "", email: "" };
     headers.forEach((h, idx) => {
       lead[h] = values[idx] || "";

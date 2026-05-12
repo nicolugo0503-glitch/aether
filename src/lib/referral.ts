@@ -1,14 +1,17 @@
 import { prisma } from "@/lib/db";
+import { randomBytes } from "crypto";
 
 export const REFERRAL_BONUS_RUNS = 25; // bonus runs for both referrer and referee
 
 /**
  * Generate a unique 8-character referral code for a user.
- * Uses the user's cuid prefix + random chars to ensure uniqueness.
+ * Uses the user's cuid suffix + cryptographically random chars to ensure uniqueness.
+ * crypto.randomBytes is used instead of Math.random() for unpredictability.
  */
 export function generateReferralCode(userId: string): string {
   const base = userId.slice(-4).toUpperCase();
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // 3 random bytes → 6 hex chars → take first 4 uppercase
+  const rand = randomBytes(3).toString("hex").slice(0, 4).toUpperCase();
   return `${base}${rand}`;
 }
 
@@ -76,6 +79,10 @@ export async function processReferralBonus(newUserId: string) {
   });
 
   if (!newUser?.referredBy) return; // no referral
+
+  // Idempotency guard: if the new user already has bonus runs from a referral,
+  // they've been processed already — don't double-award on repeated email verify clicks.
+  if (newUser.referralBonusRuns > 0) return;
 
   const referrer = await prisma.user.findUnique({
     where: { referralCode: newUser.referredBy },
