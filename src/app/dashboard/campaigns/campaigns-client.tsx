@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Trash2, Plus, RefreshCw, Megaphone, ChevronDown, ChevronUp, Mail, CheckCircle2, XCircle, Loader2, Clock, Users, Zap, Target, TrendingUp, Radio } from "lucide-react";
+import Link from "next/link";
+import { Play, Trash2, Plus, RefreshCw, Megaphone, ChevronDown, ChevronUp, Mail, CheckCircle2, XCircle, Loader2, Clock, Users, Zap, Target, TrendingUp, Radio, Sparkles } from "lucide-react";
 
 interface Agent { id: string; name: string; role: string; }
 interface Campaign {
   id: string; name: string; agentId: string; sheetUrl: string;
   status: string; results: string; schedule?: string; createdAt: string;
 }
-interface LeadResult { lead: string; status: string; output?: string; error?: string; }
+interface LeadResult { lead: string; status: string; output?: string; error?: string; score?: number; tier?: "HOT" | "WARM" | "COLD"; }
 
 /* ── Animated arc progress ring ── */
 function MissionRing({ pct, color, size = 72 }: { pct: number; color: string; size?: number }) {
@@ -385,6 +386,12 @@ export default function CampaignsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
+                    <Link href={`/dashboard/campaigns/${c.id}/scores`}
+                      className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white transition-all hover:opacity-90"
+                      style={{ background:"linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow:"0 0 14px rgba(124,58,237,0.3)" }}
+                      title="AI-score every lead 1-100 before outreach">
+                      <Sparkles className="h-3.5 w-3.5" />Score
+                    </Link>
                     <button onClick={() => runCampaign(c.id)} disabled={!!runningId}
                       className="run-btn flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all"
                       style={{ background:"linear-gradient(135deg,#ec4899,#be185d)", boxShadow:"0 0 14px rgba(236,72,153,0.25)" }}>
@@ -421,23 +428,35 @@ export default function CampaignsPage() {
                     <div className="px-6 py-8 text-center text-sm text-zinc-700">No results yet — run the campaign first.</div>
                   ) : (
                     <div className="max-h-72 overflow-y-auto divide-y" style={{ borderColor:"rgba(255,255,255,0.03)" }}>
-                      {results.map((r, idx) => (
-                        <div key={idx} className="lead-row px-6 py-3 flex items-start gap-3" style={{ animationDelay:`${idx*0.03}s` }}>
-                          <div className="shrink-0 mt-0.5">
-                            {r.status === "sent"
-                              ? <PulseDot color="#10b981" />
-                              : <span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />}
+                      {results.map((r, idx) => {
+                        const dotColor = r.status === "sent" ? "#10b981" : r.status === "skipped" ? "#71717a" : "#ef4444";
+                        const tierColor = r.tier === "HOT" ? "#f87171" : r.tier === "WARM" ? "#fbbf24" : r.tier === "COLD" ? "#a1a1aa" : null;
+                        return (
+                          <div key={idx} className="lead-row px-6 py-3 flex items-start gap-3" style={{ animationDelay:`${idx*0.03}s` }}>
+                            <div className="shrink-0 mt-0.5">
+                              {r.status === "sent"
+                                ? <PulseDot color={dotColor} />
+                                : <span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: dotColor }} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-zinc-200 font-medium truncate">{r.lead}</p>
+                                {typeof r.score === "number" && tierColor && (
+                                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0"
+                                    style={{ color: tierColor, background: `${tierColor}1a`, border: `1px solid ${tierColor}40` }}>
+                                    {r.score}
+                                  </span>
+                                )}
+                              </div>
+                              {r.error && <p className="text-xs text-red-400 mt-0.5 truncate">{r.error}</p>}
+                              {r.output && <p className="text-xs text-zinc-600 mt-0.5 line-clamp-1">{r.output}</p>}
+                            </div>
+                            <span className={`text-xs font-bold ${r.status === "sent" ? "text-emerald-500" : r.status === "skipped" ? "text-zinc-500" : "text-red-400"}`}>
+                              {r.status === "sent" ? "✓ sent" : r.status === "skipped" ? "skipped" : "✗ failed"}
+                            </span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-zinc-200 font-medium truncate">{r.lead}</p>
-                            {r.error && <p className="text-xs text-red-400 mt-0.5 truncate">{r.error}</p>}
-                            {r.output && <p className="text-xs text-zinc-600 mt-0.5 line-clamp-1">{r.output}</p>}
-                          </div>
-                          <span className={`text-xs font-bold ${r.status === "sent" ? "text-emerald-500" : "text-red-400"}`}>
-                            {r.status === "sent" ? "✓ sent" : "✗ failed"}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

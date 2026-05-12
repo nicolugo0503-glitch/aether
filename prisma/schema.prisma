@@ -111,8 +111,43 @@ model Campaign {
   status    String   @default("idle")
   results   String   @default("[]")
   schedule  String?
+
+  // AI Lead Scoring Engine
+  scoringEnabled    Boolean  @default(true)            // run AI scoring before outreach
+  minScoreThreshold Int      @default(0)               // 0 = email everyone, 50 = WARM+, 75 = HOT only
+  sortByScore       Boolean  @default(true)            // process hottest leads first
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  leadScores LeadScore[]
+}
+
+// AI-generated quality score for each lead in a campaign.
+// Lets users see who is HOT before burning a run on them.
+model LeadScore {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId      String
+
+  leadEmail   String
+  leadName    String
+  leadCompany String?
+
+  score       Int                                       // 1-100
+  tier        String                                    // "HOT" | "WARM" | "COLD"
+  reasoning   String                                    // 1-2 sentence why
+  signals     String   @default("[]")                   // JSON array of positive signals
+  redFlags    String   @default("[]")                   // JSON array of concerns
+
+  contacted   Boolean  @default(false)                  // emailed in a run?
+  skipped     Boolean  @default(false)                  // below threshold?
+
+  createdAt   DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([campaignId, score])
 }
 
 model Agent {
