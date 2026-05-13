@@ -60,7 +60,7 @@ export default function ReferralsPage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
             { label: "Friends Invited",   value: loading ? "—" : data?.referredCount ?? 0,    icon: Users,      color: "#7c3aed" },
             { label: "Verified Signups",  value: loading ? "—" : data?.verifiedReferrals ?? 0, icon: Check,      color: "#10b981" },
@@ -153,7 +153,7 @@ export default function ReferralsPage() {
         </div>
 
         {/* How it works */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
             { step: "01", title: "Share your link", desc: "Copy your unique referral link and send it to founders, operators, or anyone who'd benefit from AI automation.", icon: Share2 },
             { step: "02", title: "They sign up",     desc: "When someone clicks your link and creates a free account, they see a special welcome banner with your bonus.", icon: Users },
