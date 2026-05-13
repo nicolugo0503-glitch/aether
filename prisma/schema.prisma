@@ -170,6 +170,12 @@ model Agent {
   scheduleNextRun  DateTime?
   scheduleTimezone String    @default("UTC")
 
+  // Agent Memory — AI-generated learnings from past runs
+  memoryEnabled    Boolean   @default(false)
+  memoryContext    String    @default("")     // compressed learnings injected into every run
+  memoryUpdatedAt  DateTime?
+  memoryRunCount   Int       @default(0)      // how many runs were analyzed to build this memory
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -245,7 +251,7 @@ model Feedback {
   id        String   @id @default(cuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  rating    Int                        // 1–5 stars
+  rating    Int                        // 1-5 stars
   message   String?
   page      String?                    // which page they were on
   createdAt DateTime @default(now())
