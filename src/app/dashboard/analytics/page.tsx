@@ -219,7 +219,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+      <div className="dash-stat-grid" style={{ display: "grid" }}>
         {[
           {
             label: "Total Runs",    value: fmt(totalRuns), icon: Activity,     color: "#7c3aed",
