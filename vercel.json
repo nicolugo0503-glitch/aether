@@ -1,10 +1,10 @@
 {
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "echo 'DROP INDEX IF EXISTS \"User_referralCode_key\";' | prisma db execute --stdin 2>/dev/null || true; prisma db push --accept-data-loss && prisma generate && next build",
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "crons": [
     { "path": "/api/cron/social",  "schedule": "0 0 * * *" },
-    { "path": "/api/cron/agents",  "schedule": "0 * * * *" }
+    { "path": "/api/cron/agents",  "schedule": "0 1 * * *" }
   ]
 }
