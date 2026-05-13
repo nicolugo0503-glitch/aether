@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CustomCursor } from "@/components/landing/cursor";
-import { ChatWidget } from "@/components/chat-widget";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -45,7 +44,6 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen antialiased">
         <CustomCursor />
-        <ChatWidget />
         {children}
       </body>
     </html>
