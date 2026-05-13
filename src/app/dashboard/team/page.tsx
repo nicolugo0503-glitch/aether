@@ -22,7 +22,7 @@ export const metadata = { title: "Team | Aether Dashboard" };
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://useaether.net";
 
 const ROLE_META: Record<string, { label: string; color: string; bg: string; border: string; icon: typeof Crown }> = {
-  owner:  { label: "Owner",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Crown   },
+  owner:  { label: "Owner",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Crown   },hh
   admin:  { label: "Admin",  color: "#a78bfa", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.3)", icon: Shield  },
   member: { label: "Member", color: "#67e8f9", bg: "rgba(103,232,249,0.1)",  border: "rgba(103,232,249,0.25)", icon: UserIcon },
 };
@@ -180,7 +180,7 @@ export default async function TeamPage({
             </div>
 
             {/* Features grid */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { icon: Users,     title: "Shared Team View",    desc: "All team members can see and manage agents, campaigns, and social posts together." },
                 { icon: Shield,    title: "Role-based Access",   desc: "Assign owners, admins, and members with different levels of access." },
@@ -206,7 +206,7 @@ export default async function TeamPage({
         {wsResult && (
           <>
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { label: "Members",        value: wsResult.workspace.members.length, icon: Users,    color: "#7c3aed" },
                 { label: "Pending Invites", value: wsResult.workspace.invites.filter(i => i.expiresAt > new Date()).length, icon: Mail, color: "#0ea5e9" },
@@ -467,7 +467,7 @@ export default async function TeamPage({
             <div className="rounded-2xl p-5"
               style={{ background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.05)" }}>
               <p className="text-xs text-zinc-600 font-semibold uppercase tracking-widest mb-4">Role Permissions</p>
-              <div className="grid sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
                   { role: "owner",  perms: ["Full control", "Billing & plan", "Add/remove admins", "Delete workspace"] },
                   { role: "admin",  perms: ["Invite members", "Remove members", "Manage agents & campaigns", "View all runs"] },
