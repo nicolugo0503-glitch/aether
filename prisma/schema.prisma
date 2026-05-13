@@ -259,7 +259,6 @@ model Feedback {
   page      String?                    // which page they were on
   createdAt DateTime @default(now())
 }
-
 // ─────────────────────────────────────────────────────────────────────
 // Multi-Step Workflow Builder
 //
@@ -280,7 +279,6 @@ model Workflow {
   status      String   @default("draft")   // "draft" | "active" | "archived"
 
   // JSON array of WorkflowStep objects — see src/lib/workflow.ts for shape.
-  // Each step: { id, agentId, name, inputTemplate, stopOnError, condition? }
   steps       String   @default("[]")
 
   // Scheduled / triggered execution
@@ -316,118 +314,24 @@ model WorkflowRun {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  input       String   @default("")               // initial trigger input
-  output      String?                              // final step output
-  status      String   @default("pending")        // "pending" | "running" | "success" | "error" | "partial"
+  input       String   @default("")
+  output      String?
+  status      String   @default("pending")
 
   // Full execution trace — JSON array of StepResult objects.
-  // Each: { stepId, agentId, agentName, input, output, status, error?,
-  //         tokensIn, tokensOut, costCents, durationMs, startedAt, finishedAt, skipped? }
   stepResults String   @default("[]")
 
-  // Aggregated counters
   totalTokensIn  Int @default(0)
   totalTokensOut Int @default(0)
   totalCostCents Int @default(0)
   durationMs     Int @default(0)
 
   error       String?
-  triggeredBy String  @default("manual")          // "manual" | "cron" | "webhook"
+  triggeredBy String  @default("manual")
 
   createdAt   DateTime  @default(now())
   finishedAt  DateTime?
 
   @@index([workflowId, createdAt])
   @@index([userId])
-}
-age they were on
-  createdAt DateTime @default(now())
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Multi-Step Workflow Builder
-//
-// Chains multiple AI agents into a pipeline. Each step's output flows
-// into the next step's input via {{step_N.output}} variables. Variables
-// can also reference the initial trigger payload as {{input}}.
-//
-// Example: Rex (researches a company) → Ava (writes a cold email using
-// the research) → Sage (drafts a follow-up if no reply in 3 days).
-// ─────────────────────────────────────────────────────────────────────
-model Workflow {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  name        String
-  description String?
-  status      String   @default("draft")   // "draft" | "active" | "archived"
-
-  // JSON array of WorkflowStep objects — see src/lib/workflow.ts for shape.
-  // Each step: { id, agentId, name, inputTemplate, stopOnError, condition? }
-  steps       String   @default("[]")
-
-  // Scheduled / triggered execution
-  trigger          String    @default("manual")   // "manual" | "schedule" | "webhook"
-  scheduleEnabled  Boolean   @default(false)
-  scheduleCron     String?                         // "daily" | "every2days" | "weekly"
-  scheduleInput    String?                         // default {{input}} payload for scheduled runs
-  scheduleNextRun  DateTime?
-  scheduleTimezone String    @default("UTC")
-
-  // Webhook trigger
-  webhookToken     String?   @unique               // bearer token for /api/workflows/{id}/trigger
-
-  // Aggregate stats (denormalized for fast dashboard rendering)
-  totalRuns        Int       @default(0)
-  successfulRuns   Int       @default(0)
-  totalCostCents   Int       @default(0)
-  lastRunAt        DateTime?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  runs WorkflowRun[]
-
-  @@index([userId])
-  @@index([scheduleEnabled, scheduleNextRun])
-}
-
-model WorkflowRun {
-  id          String   @id @default(cuid())
-  workflowId  String
-  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  input       String   @default("")               // initial trigger input
-  output      String?                              // final step output
-  status      String   @default("pending")        // "pending" | "running" | "success" | "error" | "partial"
-
-  // Full execution trace — JSON array of StepResult objects.
-  // Each: { stepId, agentId, agentName, input, output, status, error?,
-  //         tokensIn, tokensOut, costCents, durationMs, startedAt, finishedAt, skipped? }
-  stepResults String   @default("[]")
-
-  // Aggregated counters
-  totalTokensIn  Int @default(0)
-  totalTokensOut Int @default(0)
-  totalCostCents Int @default(0)
-  durationMs     Int @default(0)
-
-  error       String?
-  triggeredBy String  @default("manual")          // "manual" | "cron" | "webhook"
-
-  createdAt   DateTime  @default(now())
-  finishedAt  DateTime?
-
-  @@index([workflowId, createdAt])
-  @@index([userId])
-}
-inishedAt  DateTime?
-
-  @@index([workflowId, createdAt])
-  @@index([userId])
-}
-}
 }
