@@ -14,7 +14,6 @@ import { Sparkline }       from "./_components/sparkline";
 import { AnimatedCounter } from "./_components/animated-counter";
 import { LiveFeed, type FeedItem } from "./_components/live-feed";
 import { CommandPalette }  from "./_components/command-palette";
-import { AiAssistant }     from "./_components/ai-assistant";
 import { HoloCard }        from "./_components/holo-card";
 import { Typewriter }      from "./_components/typewriter";
 import { RadialGauge }     from "./_components/radial-gauge";
@@ -105,7 +104,6 @@ export default async function DashboardHome() {
   return (
     <>
       <CommandPalette agents={agentStubs} />
-      <AiAssistant />
 
       <style>{`
         @keyframes liveDot {
