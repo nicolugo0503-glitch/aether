@@ -264,6 +264,26 @@ body::before {
   animation: ring-expand 2.5s ease-out infinite 0.8s;
 }
 
+/* ── Floating widgets — lift above mobile tab bar (≈64px) ───── */
+@media (max-width: 767px) {
+  .feedback-widget-btn  { bottom: 76px !important; left: 12px !important; }
+  .chat-widget-bubble   { bottom: 76px !important; right: 12px !important; }
+  .chat-widget-panel    {
+    bottom: 140px !important;
+    right: 12px !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 380px !important;
+    max-height: calc(100vh - 220px) !important;
+  }
+  /* Runs page hero banner */
+  .hero-banner-run { flex-direction: column !important; padding: 1.5rem 1rem !important; gap: 1rem !important; }
+  .hero-icon-run { width: 60px !important; height: 60px !important; }
+  .hero-title-run { font-size: 1.5rem !important; }
+  .container-run { padding: 1rem !important; }
+  .stats-grid-run { grid-template-columns: 1fr 1fr !important; gap: 0.75rem !important; }
+  .run-output-run { display: none !important; }
+}
+
 /* ── Component layer ─────────────────────────────────────────── */
 @layer components {
   .btn {
