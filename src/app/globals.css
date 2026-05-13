@@ -448,7 +448,7 @@ html, body { overflow-x: hidden; }
   .set-section-body { padding: 16px !important; }
 
   /* ── Floating widgets above tab bar ── */
-  .feedback-widget-btn { bottom: 76px !important; left: 12px !important; }
+  .feedback-widget-btn { display: none !important; }
   .chat-widget-bubble  { bottom: 76px !important; right: 12px !important; }
   .chat-widget-panel   {
     bottom: 140px !important;
