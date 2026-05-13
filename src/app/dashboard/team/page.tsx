@@ -22,7 +22,7 @@ export const metadata = { title: "Team | Aether Dashboard" };
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://useaether.net";
 
 const ROLE_META: Record<string, { label: string; color: string; bg: string; border: string; icon: typeof Crown }> = {
-  owner:  { label: "Owner",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Crown   },hh
+  owner:  { label: "Owner",  color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  border: "rgba(245,158,11,0.3)",  icon: Crown   },
   admin:  { label: "Admin",  color: "#a78bfa", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.3)", icon: Shield  },
   member: { label: "Member", color: "#67e8f9", bg: "rgba(103,232,249,0.1)",  border: "rgba(103,232,249,0.25)", icon: UserIcon },
 };
