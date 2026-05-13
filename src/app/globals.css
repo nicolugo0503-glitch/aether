@@ -448,15 +448,10 @@ html, body { overflow-x: hidden; }
   .set-section-body { padding: 16px !important; }
 
   /* ── Floating widgets above tab bar ── */
+  /* ── Floating widgets — hidden on mobile ── */
   .feedback-widget-btn { display: none !important; }
-  .chat-widget-bubble  { bottom: 76px !important; right: 12px !important; }
-  .chat-widget-panel   {
-    bottom: 140px !important;
-    right: 12px !important;
-    width: calc(100vw - 24px) !important;
-    max-width: 380px !important;
-    max-height: calc(100vh - 220px) !important;
-  }
+  .chat-widget-bubble  { display: none !important; }
+  .chat-widget-panel   { display: none !important; }
 }
 
 /* ════════════════════════════════════════
