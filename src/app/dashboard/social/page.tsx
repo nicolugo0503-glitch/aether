@@ -837,7 +837,7 @@ export default function SocialPage() {
         </div>
 
         {/* ── TABS ── */}
-        <div style={{
+        <div className="soc-tab-row" style={{
           display: "flex", gap: 4, marginBottom: 20,
           padding: "5px", borderRadius: 16,
           background: "rgba(4,4,12,0.85)", border: "1px solid rgba(255,255,255,0.07)",
@@ -1056,7 +1056,7 @@ export default function SocialPage() {
                     </div>
 
                     {/* Phone mockup */}
-                    <div style={{ padding: "28px 22px", display: "flex", alignItems: "flex-start", justifyContent: "center", background: `radial-gradient(ellipse at 50% 50%, ${ACCENT}06 0%, transparent 70%)`, minWidth: 260 }}>
+                    <div className="soc-phone-preview" style={{ padding: "28px 22px", display: "flex", alignItems: "flex-start", justifyContent: "center", background: `radial-gradient(ellipse at 50% 50%, ${ACCENT}06 0%, transparent 70%)`, minWidth: 260 }}>
                       <PhoneMockup draft={draft} platforms={platforms} />
                     </div>
                   </div>
