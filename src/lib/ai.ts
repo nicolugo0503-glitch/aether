@@ -1,13 +1,10 @@
 import OpenAI from "openai";
+import { injectMemory } from "./agent-memory";
 
-// Lazy singleton — only instantiated when first called, so build-time
-// collection doesn't crash if OPENAI_API_KEY isn't set in the environment.
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    _openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || "placeholder-set-in-vercel",
-    });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "placeholder-set-in-vercel" });
   }
   return _openai;
 }
@@ -20,11 +17,7 @@ const PRICING_CENTS_PER_1K = {
   "gpt-4.1-mini": { in: 0.04,  out: 0.16 },
 } as Record<string, { in: number; out: number }>;
 
-export function estimateCostCents(
-  model: string,
-  tokensIn: number,
-  tokensOut: number,
-): number {
+export function estimateCostCents(model: string, tokensIn: number, tokensOut: number): number {
   const p = PRICING_CENTS_PER_1K[model] || PRICING_CENTS_PER_1K["gpt-4o-mini"];
   return Math.ceil((tokensIn / 1000) * p.in + (tokensOut / 1000) * p.out);
 }
@@ -36,44 +29,35 @@ export interface AgentRunParams {
   input: string;
   model?: string;
   temperature?: number;
+  // Agent Memory
+  memoryContext?: string;
+  memoryEnabled?: boolean;
 }
 
 export async function runAgent(params: AgentRunParams) {
   const {
-    systemPrompt,
-    knowledge = "",
-    input,
-    model = DEFAULT_MODEL,
-    temperature = 0.4,
+    systemPrompt, knowledge = "", input,
+    model = DEFAULT_MODEL, temperature = 0.4,
+    memoryContext = "", memoryEnabled = false,
   } = params;
+
+  const effectiveSystemPrompt = injectMemory(systemPrompt, memoryContext, memoryEnabled);
 
   const messages = [
     {
       role: "system" as const,
       content: [
-        systemPrompt,
-        knowledge
-          ? `\n\n---\nRELEVANT CONTEXT / KNOWLEDGE:\n${knowledge}\n---`
-          : "",
+        effectiveSystemPrompt,
+        knowledge ? `\n\n---\nRELEVANT CONTEXT / KNOWLEDGE:\n${knowledge}\n---` : "",
       ].join(""),
     },
     { role: "user" as const, content: input },
   ];
 
-  const completion = await getOpenAI().chat.completions.create({
-    model,
-    temperature,
-    messages,
-  });
-
+  const completion = await getOpenAI().chat.completions.create({ model, temperature, messages });
   const output = completion.choices[0]?.message?.content ?? "";
   const tokensIn = completion.usage?.prompt_tokens ?? 0;
   const tokensOut = completion.usage?.completion_tokens ?? 0;
 
-  return {
-    output,
-    tokensIn,
-    tokensOut,
-    costCents: estimateCostCents(model, tokensIn, tokensOut),
-  };
+  return { output, tokensIn, tokensOut, costCents: estimateCostCents(model, tokensIn, tokensOut) };
 }
