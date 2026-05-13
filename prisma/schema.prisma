@@ -1,3 +1,4 @@
+// v: agent-memory-engine
 // Aether — data model
 //
 // LOCAL DEV:  DATABASE_URL="file:./dev.db"          (SQLite, no setup needed)
