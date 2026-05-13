@@ -11,6 +11,7 @@ import { FeedbackWidget } from "@/components/widgets/FeedbackWidget";
 const NAV = [
   { href: "/dashboard",             label: "Overview",     icon: "LayoutDashboard", exact: true },
   { href: "/dashboard/agents",      label: "AI Employees", icon: "Bot" },
+  { href: "/dashboard/workflows",   label: "Workflows",    icon: "Workflow" },
   { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
   { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
   { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
@@ -129,7 +130,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Mobile bottom nav */}
       <MobileTabBar />
 
-      {/* FLOATING WIDGETS — desktop only */}
+      {/* FLOATING WIDGETS - desktop only */}
       <div className="hidden md:block">
         <ChatWidget />
         <FeedbackWidget />
