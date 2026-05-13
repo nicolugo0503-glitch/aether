@@ -20,7 +20,6 @@ const NAV = [
   { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
   { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
 ];
-
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -30,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-black">
-      {/* ── SIDEBAR ──────────────────────────────────────── */}
+      {/* SIDEBAR */}
       <aside className="hidden md:flex w-60 shrink-0 flex-col"
         style={{ borderRight: "1px solid rgba(255,255,255,0.04)", background: "rgba(4,4,8,0.98)" }}>
 
@@ -42,7 +41,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </Link>
           <span className="ml-auto text-xs text-violet-400 font-bold bg-violet-500/10 border border-violet-500/20 rounded-full px-2 py-0.5">AI</span>
         </div>
-
         {/* Platform pills */}
         <div className="px-4 py-2.5 mx-3 mt-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
           <div className="text-xs text-zinc-700 mb-1.5 uppercase tracking-widest">Platforms</div>
@@ -70,7 +68,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <NavLink href="/dashboard/feedback" icon="MessageSquare" label="Feedback" />
           )}
         </nav>
-
         {/* User section */}
         <div className="px-3 pb-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           <div className="rounded-2xl p-3 mb-2" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
@@ -105,7 +102,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </aside>
 
-      {/* ── MAIN ─────────────────────────────────────────── */}
+      {/* MAIN */}
       <main className="flex-1 min-w-0 relative">
         <div className="absolute top-0 inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.25), transparent)" }} />
 
@@ -132,9 +129,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Mobile bottom nav */}
       <MobileTabBar />
 
-      {/* ── FLOATING WIDGETS ─────────────────────── */}
-      <ChatWidget />
-      <FeedbackWidget />
+      {/* FLOATING WIDGETS — desktop only */}
+      <div className="hidden md:block">
+        <ChatWidget />
+        <FeedbackWidget />
+      </div>
     </div>
   );
 }
