@@ -206,7 +206,7 @@ export default async function DashboardHome() {
           {/* ═══════════════════════════════════════
               HERO — COMMAND CENTER HEADER
           ═══════════════════════════════════════ */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", animation: "statusIn 0.6s ease both" }}>
+          <div className="dash-hero" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", animation: "statusIn 0.6s ease both" }}>
 
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               {/* Avatar with animated pulse rings */}
@@ -246,7 +246,7 @@ export default async function DashboardHome() {
                 <p style={{ fontSize: 11, color: "#52525b", fontWeight: 600, letterSpacing: "0.04em", marginBottom: 3 }}>
                   {greeting} —
                 </p>
-                <h1 style={{ fontSize: 30, fontWeight: 900, letterSpacing: "-0.7px", lineHeight: 1 }}>
+                <h1 className="dash-hero-title" style={{ fontSize: 30, fontWeight: 900, letterSpacing: "-0.7px", lineHeight: 1 }}>
                   <Typewriter
                     text={displayName}
                     speed={60}
@@ -279,8 +279,8 @@ export default async function DashboardHome() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 6,
+              <div className="hidden sm:flex" style={{
+                alignItems: "center", gap: 6,
                 padding: "8px 13px", borderRadius: 11,
                 background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
               }}>
@@ -304,7 +304,7 @@ export default async function DashboardHome() {
           {/* ═══════════════════════════════════════
               HOLOGRAPHIC STAT CARDS
           ═══════════════════════════════════════ */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          <div className="dash-stat-grid" style={{ display: "grid" }}>
             {STAT_CARDS.map((s, i) => {
               const TI = s.trend === "up" ? TrendingUp : s.trend === "down" ? TrendingDown : Minus;
               const tc = s.trend === "up" ? "#10b981" : s.trend === "down" ? "#ef4444" : "#71717a";
@@ -376,7 +376,7 @@ export default async function DashboardHome() {
           {/* ═══════════════════════════════════════
               MAIN GRID — LIVE FEED + SIDEBAR
           ═══════════════════════════════════════ */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 14 }}>
+          <div className="dash-main-grid" style={{ display: "grid" }}>
 
             {/* LIVE FEED */}
             <div className="card-glass" style={{ borderRadius: 20, overflow: "hidden", position: "relative" }}>
