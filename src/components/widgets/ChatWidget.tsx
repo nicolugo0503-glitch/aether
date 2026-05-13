@@ -213,6 +213,7 @@ export function ChatWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Open chat support"
+        className="chat-widget-bubble"
         style={{
           position: "fixed",
           bottom: 24,
@@ -247,6 +248,7 @@ export function ChatWidget() {
       {/* ── PANEL ── */}
       {open && (
         <div
+          className="chat-widget-panel"
           style={{
             position: "fixed",
             bottom: 88,
