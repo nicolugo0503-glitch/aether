@@ -264,24 +264,214 @@ body::before {
   animation: ring-expand 2.5s ease-out infinite 0.8s;
 }
 
-/* ── Floating widgets — lift above mobile tab bar (≈64px) ───── */
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE-FIRST RESPONSIVE SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+html, body { overflow-x: hidden; }
+
+/* ── Class-based responsive grid helpers ── */
+/* Default = mobile-first (1 col). Expand at 900px. */
+.dash-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.dash-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.dash-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 900px) {
+  .dash-stat-grid   { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .dash-main-grid   { grid-template-columns: 1fr 300px; }
+  .dash-charts-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Horizontal scroll wrapper for tables */
+.mobile-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ════════════════════════════════════════
+   CORE MOBILE BREAKPOINT — max 767px
+   ════════════════════════════════════════ */
 @media (max-width: 767px) {
-  .feedback-widget-btn  { bottom: 76px !important; left: 12px !important; }
-  .chat-widget-bubble   { bottom: 76px !important; right: 12px !important; }
-  .chat-widget-panel    {
+
+  /* ── Inline-style grid overrides (React SSR: values preserved) ── */
+  [style*="repeat(4, 1fr)"],
+  [style*="repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  [style*="repeat(3, 1fr)"],
+  [style*="repeat(3,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  [style*="1fr 300px"],
+  [style*="1fr 320px"],
+  [style*="1fr 340px"],
+  [style*="1fr 360px"],
+  [style*="1fr 280px"],
+  [style*="1fr 250px"],
+  [style*="1fr 260px"],
+  [style*="300px 1fr"],
+  [style*="320px 1fr"],
+  [style*="280px 1fr"],
+  [style*="260px 1fr"],
+  [style*="240px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="repeat(7, 1fr)"] { min-width: 560px; }
+  :has(> [style*="repeat(7, 1fr)"]) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  [style*="90px 100px"] { min-width: 540px; }
+  :has(> [style*="90px 100px"]) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  [style*="minmax(300px"] { grid-template-columns: 1fr !important; }
+
+  /* ── Hide keyboard shortcut hints ── */
+  kbd { display: none !important; }
+
+  /* ── Prevent overflow ── */
+  .relative.min-h-screen, .card, .card-glass, .glass { overflow-x: hidden; }
+
+  /* ── Agent detail form ── */
+  .agent-form-grid-2 { grid-template-columns: 1fr !important; }
+
+  /* ── Dashboard home hero ── */
+  .dash-hero {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .dash-hero-title { font-size: 22px !important; letter-spacing: -0.3px !important; }
+
+  /* ── Agents page ── */
+  .container-ag { padding: 0 !important; }
+  .hero-banner-ag {
+    flex-direction: column !important;
+    padding: 1.25rem 1rem !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .hero-icon-ag   { width: 60px !important; height: 60px !important; }
+  .hero-title-ag  { font-size: 1.4rem !important; }
+  .hero-subtitle-ag { font-size: 0.8rem !important; }
+  .stats-grid-ag  {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .stat-value-ag  { font-size: 1.75rem !important; }
+  .agents-grid-ag { grid-template-columns: 1fr !important; margin-bottom: 1.5rem !important; }
+  .form-grid-ag   { grid-template-columns: 1fr !important; gap: 0.75rem !important; }
+  .hire-form-inner-ag { padding: 1rem !important; }
+  .hire-form-header-ag { margin-bottom: 1rem !important; padding-bottom: 0.75rem !important; }
+  .hire-btn-ag    { width: 100% !important; justify-content: center !important; }
+  .limit-banner-ag {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    padding: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .nav-strip-ag   { gap: 0.5rem !important; padding-top: 1rem !important; }
+  .empty-state-ag { padding: 2rem 1rem !important; }
+  .section-title-ag { font-size: 1.1rem !important; }
+  .agent-inner-ag { flex-wrap: wrap !important; gap: 0.75rem !important; }
+
+  /* ── Runs page ── */
+  .container-run { padding: 0 !important; }
+  .hero-banner-run {
+    flex-direction: column !important;
+    padding: 1.25rem 1rem !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .hero-icon-run  { width: 60px !important; height: 60px !important; }
+  .hero-title-run { font-size: 1.4rem !important; }
+  .hero-subtitle-run { font-size: 0.8rem !important; }
+  .stats-grid-run {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .stat-value-run  { font-size: 1.75rem !important; }
+  .run-inner-run   { flex-wrap: wrap !important; gap: 0.5rem !important; }
+  .run-output-run  { display: none !important; }
+  .section-title-run { font-size: 1.1rem !important; }
+  .run-row-run     { padding: 0.875rem 1rem !important; }
+
+  /* ── Billing page ── */
+  .container-bill { padding: 0 !important; }
+  .hero-banner-bill {
+    flex-direction: column !important;
+    padding: 1.25rem 1rem !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .hero-icon-bill  { width: 60px !important; height: 60px !important; }
+  .hero-title-bill { font-size: 1.4rem !important; }
+  .stats-grid-bill {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .stat-value-bill { font-size: 1.75rem !important; }
+  .plan-card-bill  { padding: 1rem !important; }
+
+  /* ── Social page ── */
+  .soc-stat-grid  { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  /* Phone mockup preview is beautiful but too wide for mobile — hide it */
+  .soc-phone-preview { display: none !important; }
+  /* Tab bar scrolls horizontally if needed */
+  .soc-tab-row {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 4px !important;
+  }
+
+  /* ── Settings page ── */
+  .set-stat-grid  { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .set-section-body { padding: 16px !important; }
+
+  /* ── Floating widgets above tab bar ── */
+  .feedback-widget-btn { bottom: 76px !important; left: 12px !important; }
+  .chat-widget-bubble  { bottom: 76px !important; right: 12px !important; }
+  .chat-widget-panel   {
     bottom: 140px !important;
     right: 12px !important;
     width: calc(100vw - 24px) !important;
     max-width: 380px !important;
     max-height: calc(100vh - 220px) !important;
   }
-  /* Runs page hero banner */
-  .hero-banner-run { flex-direction: column !important; padding: 1.5rem 1rem !important; gap: 1rem !important; }
-  .hero-icon-run { width: 60px !important; height: 60px !important; }
-  .hero-title-run { font-size: 1.5rem !important; }
-  .container-run { padding: 1rem !important; }
-  .stats-grid-run { grid-template-columns: 1fr 1fr !important; gap: 0.75rem !important; }
-  .run-output-run { display: none !important; }
+}
+
+/* ════════════════════════════════════════
+   EXTRA-SMALL PHONES — max 479px
+   ════════════════════════════════════════ */
+@media (max-width: 479px) {
+  .hero-banner-ag,
+  .hero-banner-run,
+  .hero-banner-bill { padding: 1rem 0.875rem !important; }
+
+  .stat-value-ag,
+  .stat-value-run,
+  .stat-value-bill { font-size: 1.5rem !important; }
+
+  .hire-form-inner-ag { padding: 0.875rem !important; }
 }
 
 /* ── Component layer ─────────────────────────────────────────── */
