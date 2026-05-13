@@ -4,8 +4,9 @@ import { prisma } from "@/lib/db";
 import { runAgent } from "@/lib/ai";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import { centsToUSD, formatDate } from "@/lib/utils";
-import { Bot, Play, Settings, Clock, CheckCircle2, XCircle, Loader2, ChevronLeft, Zap, Brain, Thermometer, CalendarClock } from "lucide-react";
+import { Bot, Play, Settings, Clock, CheckCircle2, XCircle, Loader2, ChevronLeft, Zap, Brain, Thermometer, CalendarClock, Sparkles } from "lucide-react";
 import Link from "next/link";
+import AgentMemoryPanel from "./memory-panel";
 
 async function updateAgent(formData: FormData) {
   "use server";
@@ -57,6 +58,8 @@ async function triggerRun(formData: FormData) {
       input,
       model: agent.model,
       temperature: agent.temperature,
+      memoryContext: agent.memoryContext || "",
+      memoryEnabled: agent.memoryEnabled || false,
     });
     await prisma.run.update({
       where: { id: run.id },
@@ -114,6 +117,7 @@ export default async function AgentDetail({
   if (!agent) notFound();
 
   const successCount = agent.runs.filter(r => r.status === "success").length;
+  const totalSuccessAll = await prisma.run.count({ where: { agentId: id, status: "success" } });
   const totalCost = agent.runs.reduce((s, r) => s + (r.costCents ?? 0), 0);
   const initials = agent.name.slice(0, 2).toUpperCase();
   const COLORS = ["#7c3aed", "#6d28d9"];
@@ -359,6 +363,16 @@ export default async function AgentDetail({
           )}
         </div>
       </div>
+
+      {/* ── Agent Memory Panel ── */}
+      <AgentMemoryPanel
+        agentId={agent.id}
+        memoryEnabled={agent.memoryEnabled}
+        memoryContext={agent.memoryContext}
+        memoryUpdatedAt={agent.memoryUpdatedAt}
+        memoryRunCount={agent.memoryRunCount}
+        totalSuccessRuns={totalSuccessAll}
+      />
     </div>
   );
 }
