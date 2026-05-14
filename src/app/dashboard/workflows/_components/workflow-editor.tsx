@@ -899,5 +899,3 @@ function RunRow({ run }: { run: RecentRun }) {
     </div>
   );
 }
-   </s
-     }
