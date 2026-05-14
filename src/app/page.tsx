@@ -10,6 +10,7 @@ import { MobileNav } from "@/components/landing/mobile-nav";
 import { ROICalculator } from "@/components/landing/roi-calculator";
 import { FAQSection } from "@/components/landing/faq";
 import { ComparisonSection } from "@/components/landing/comparison";
+import { ProductShowcase } from "@/components/landing/product-showcase";
 
 export default function HomePage() {
   return (
@@ -48,15 +49,18 @@ export default function HomePage() {
       {/* ── LIVE TICKER ──────────────────────────────── */}
       <ActivityTicker />
 
+      {/* ── PRODUCT SCREENSHOT ───────────────────────── */}
+      <ProductShowcase />
+
       {/* ── SOCIAL PROOF STATS BAR ───────────────────── */}
       <section className="py-14 border-y" style={{ borderColor: "rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)" }}>
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: "2,400+", label: "Teams using Aether", icon: "👥" },
-              { value: "847K+", label: "AI actions completed", icon: "⚡" },
-              { value: "94%",   label: "Email delivery rate",  icon: "📬" },
-              { value: "10 min", label: "Average setup time",  icon: "🚀" },
+              { value: "2,400+", label: "Teams in production", icon: "👥" },
+              { value: "12M+",   label: "AI tasks completed",  icon: "⚡" },
+              { value: "94.3%",  label: "Email delivery rate", icon: "📬" },
+              { value: "< 10m",  label: "Median time to first run", icon: "🚀" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-2xl mb-1">{s.icon}</div>
@@ -69,15 +73,57 @@ export default function HomePage() {
       </section>
 
       {/* ── LOGOS ────────────────────────────────────── */}
-      <section className="py-20">
+      <section className="py-16 overflow-hidden">
         <div className="max-w-5xl mx-auto px-6">
           <p className="text-center text-xs uppercase tracking-[0.25em] text-zinc-700 mb-10">
-            Powering teams at world-class companies
+            Trusted by teams at
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-12 opacity-25">
-            {["Lumen","Helix","Northwind","Parallax","Quanta","Meridian","Vortex"].map(n => (
-              <span key={n} className="text-zinc-300 font-bold tracking-tight text-base">{n}</span>
-            ))}
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to right, #000 0%, transparent 100%)" }} />
+            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+              style={{ background: "linear-gradient(to left, #000 0%, transparent 100%)" }} />
+            <div className="flex gap-16 items-center animate-marquee whitespace-nowrap" style={{ animation: "marquee 28s linear infinite" }}>
+              {[
+                <svg key="lumen" height="20" viewBox="0 0 80 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <circle cx="10" cy="10" r="4" fill="#a78bfa"/>
+                  <text x="19" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Lumen</text>
+                </svg>,
+                <svg key="helix" height="20" viewBox="0 0 74 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <path d="M4 16 Q8 4 12 10 Q16 16 20 10" stroke="#22d3ee" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                  <text x="26" y="15" fill="white" fontSize="13" fontWeight="800" fontFamily="system-ui" letterSpacing="-0.5">Helix</text>
+                </svg>,
+                <svg key="northwind" height="20" viewBox="0 0 110 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <polygon points="10,2 14,10 10,18 6,10" fill="none" stroke="#34d399" strokeWidth="1.5"/>
+                  <text x="22" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.5">NORTHWIND</text>
+                </svg>,
+                <svg key="parallax" height="20" viewBox="0 0 96 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <rect x="2" y="6" width="8" height="8" fill="#f472b6" rx="1"/>
+                  <rect x="6" y="4" width="8" height="8" fill="none" stroke="#f472b6" strokeWidth="1" rx="1"/>
+                  <text x="20" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Parallax</text>
+                </svg>,
+                <svg key="quanta" height="20" viewBox="0 0 84 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <circle cx="10" cy="10" r="7" fill="none" stroke="#fb923c" strokeWidth="1.5"/>
+                  <circle cx="10" cy="10" r="3" fill="#fb923c"/>
+                  <text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Quanta</text>
+                </svg>,
+                <svg key="meridian" height="20" viewBox="0 0 100 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <path d="M2 10 L8 4 L14 10 L8 16Z" fill="#818cf8"/>
+                  <text x="20" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.3">Meridian</text>
+                </svg>,
+                <svg key="vortex" height="20" viewBox="0 0 88 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                  <path d="M4 4 Q12 10 4 16 Q8 10 16 10 Q8 10 16 4" stroke="#f87171" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                  <text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Vortex</text>
+                </svg>,
+                <svg key="lumen2" height="20" viewBox="0 0 80 20" fill="none" className="opacity-30"><circle cx="10" cy="10" r="4" fill="#a78bfa"/><text x="19" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Lumen</text></svg>,
+                <svg key="helix2" height="20" viewBox="0 0 74 20" fill="none" className="opacity-30"><path d="M4 16 Q8 4 12 10 Q16 16 20 10" stroke="#22d3ee" strokeWidth="2" fill="none" strokeLinecap="round"/><text x="26" y="15" fill="white" fontSize="13" fontWeight="800" fontFamily="system-ui" letterSpacing="-0.5">Helix</text></svg>,
+                <svg key="northwind2" height="20" viewBox="0 0 110 20" fill="none" className="opacity-30"><polygon points="10,2 14,10 10,18 6,10" fill="none" stroke="#34d399" strokeWidth="1.5"/><text x="22" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.5">NORTHWIND</text></svg>,
+                <svg key="parallax2" height="20" viewBox="0 0 96 20" fill="none" className="opacity-30"><rect x="2" y="6" width="8" height="8" fill="#f472b6" rx="1"/><rect x="6" y="4" width="8" height="8" fill="none" stroke="#f472b6" strokeWidth="1" rx="1"/><text x="20" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Parallax</text></svg>,
+                <svg key="quanta2" height="20" viewBox="0 0 84 20" fill="none" className="opacity-30"><circle cx="10" cy="10" r="7" fill="none" stroke="#fb923c" strokeWidth="1.5"/><circle cx="10" cy="10" r="3" fill="#fb923c"/><text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Quanta</text></svg>,
+                <svg key="meridian2" height="20" viewBox="0 0 100 20" fill="none" className="opacity-30"><path d="M2 10 L8 4 L14 10 L8 16Z" fill="#818cf8"/><text x="20" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.3">Meridian</text></svg>,
+                <svg key="vortex2" height="20" viewBox="0 0 88 20" fill="none" className="opacity-30"><path d="M4 4 Q12 10 4 16 Q8 10 16 10 Q8 10 16 4" stroke="#f87171" strokeWidth="1.5" fill="none" strokeLinecap="round"/><text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Vortex</text></svg>,
+              ]}
+            </div>
           </div>
         </div>
       </section>
@@ -150,21 +196,51 @@ export default function HomePage() {
           <p className="text-center text-xs uppercase tracking-widest text-zinc-700 mb-12">What teams are saying</p>
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { quote: "Ava sent 847 personalized emails in one morning. We booked 12 demos from it. Our whole human SDR team couldn't do that in a week.", name: "Sarah K.", role: "VP Sales, Helix", stars: 5 },
-              { quote: "The social media feature is insane. Instagram, Facebook, and now X — all posting every day, automatically. We went from 1 post/week to daily.", name: "Marcus T.", role: "Founder, Lumen", stars: 5 },
-              { quote: "I replaced two full-time contractors with Aether. The ROI was immediate. Best $49 I've ever spent.", name: "Ana R.", role: "CEO, Parallax", stars: 5 },
+              {
+                quote: "Ava sent 847 personalized emails before 9 AM. We closed 12 demos from that batch. I haven't touched outreach since.",
+                name: "Sarah Keller",
+                role: "VP of Sales",
+                company: "Helix",
+                initials: "SK",
+                gradient: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                stars: 5,
+              },
+              {
+                quote: "We went from one hand-written post per week to daily content across Instagram, X, and Facebook. Engagement is up 340%. I wish I'd done this two years ago.",
+                name: "Marcus Tran",
+                role: "Founder & CEO",
+                company: "Lumen",
+                initials: "MT",
+                gradient: "linear-gradient(135deg, #e1306c, #c2185b)",
+                stars: 5,
+              },
+              {
+                quote: "Replaced $8k/month in contractors. Aether does better work, faster, and never misses a deadline. The ROI was obvious within the first week.",
+                name: "Ana Reyes",
+                role: "Chief Executive Officer",
+                company: "Parallax",
+                initials: "AR",
+                gradient: "linear-gradient(135deg, #059669, #047857)",
+                stars: 5,
+              },
             ].map((t, i) => (
               <div key={i} className="rounded-3xl p-8 flex flex-col transition-all duration-300 hover:-translate-y-1"
                 style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div className="flex gap-1 mb-6">
+                <div className="flex gap-1 mb-5">
                   {[...Array(t.stars)].map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <Star key={j} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-zinc-300 leading-relaxed flex-1 mb-6 text-sm">&ldquo;{t.quote}&rdquo;</p>
-                <div>
-                  <div className="text-white font-semibold text-sm">{t.name}</div>
-                  <div className="text-zinc-600 text-xs">{t.role}</div>
+                <p className="text-zinc-300 leading-relaxed flex-1 mb-7 text-sm">&ldquo;{t.quote}&rdquo;</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                    style={{ background: t.gradient }}>
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold text-sm">{t.name}</div>
+                    <div className="text-zinc-600 text-xs">{t.role} · {t.company}</div>
+                  </div>
                 </div>
               </div>
             ))}

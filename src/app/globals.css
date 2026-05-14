@@ -80,6 +80,11 @@ body::before {
   100% { transform: translateX(100%); }
 }
 
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
@@ -482,17 +487,5 @@ html, body { overflow-x: hidden; }
   }
   .btn-ghost {
     @apply btn text-zinc-400 hover:text-white hover:bg-white/5;
-  }
-  .input {
-    @apply w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/60 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all duration-200;
-  }
-  .card {
-    @apply rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6;
-  }
-  .label {
-    @apply text-xs font-medium uppercase tracking-widest text-zinc-500;
-  }
-  .link {
-    @apply text-violet-400 hover:text-violet-300 transition-colors;
   }
 }

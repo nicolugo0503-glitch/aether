@@ -88,7 +88,6 @@ function LivePreviewCard() {
 
   return (
     <div className="relative" style={{ perspective: "1200px" }}>
-      {/* Background cards (depth) */}
       {[1, 2].map(d => (
         <div key={d} className="absolute rounded-2xl"
           style={{
@@ -100,7 +99,6 @@ function LivePreviewCard() {
           }} />
       ))}
 
-      {/* Main card */}
       <div
         className="rounded-2xl p-5 transition-all duration-400"
         style={{
@@ -114,7 +112,6 @@ function LivePreviewCard() {
           minHeight: 200,
         }}>
 
-        {/* Header */}
         <div className="flex items-center gap-2.5 mb-4">
           <div className="h-8 w-8 rounded-lg flex items-center justify-center text-base"
             style={{ background: `${card.color}25`, border: `1px solid ${card.color}40` }}>
@@ -130,18 +127,15 @@ function LivePreviewCard() {
           </div>
         </div>
 
-        {/* Content lines */}
         <div className="rounded-xl p-3 font-mono text-xs space-y-0.5 mb-3" style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.04)" }}>
           {card.lines.slice(0, typedLines).map((line, i) => (
-            <div key={i} className="text-zinc-300 leading-relaxed">{line || "\u00A0"}</div>
+            <div key={i} className="text-zinc-300 leading-relaxed">{line || " "}</div>
           ))}
           <span className="inline-block w-1.5 h-3.5 bg-violet-400 animate-pulse" />
         </div>
 
-        {/* Meta */}
         <div className="text-xs text-zinc-600">{card.meta}</div>
 
-        {/* Progress dots */}
         <div className="flex gap-1.5 mt-3 justify-center">
           {cards.map((_, i) => (
             <div key={i} className="h-1 rounded-full transition-all duration-300"
@@ -150,7 +144,6 @@ function LivePreviewCard() {
         </div>
       </div>
 
-      {/* Floating stat badge */}
       <div className="absolute -bottom-4 -right-4 rounded-2xl px-4 py-2.5 text-sm font-bold text-white"
         style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 8px 24px rgba(124,58,237,0.5)", border: "1px solid rgba(167,139,250,0.3)" }}>
         142 emails sent today
@@ -168,15 +161,11 @@ export function HeroSection() {
   const [deleting, setDeleting] = useState(false);
   const [count, setCount] = useState({ teams: 0, emails: 0, saves: 0 });
 
-  // Canvas particle system — pauses when not visible
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    // Skip canvas on touch/mobile devices for performance
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     if (isTouch) return;
-
     const ctx = canvas.getContext("2d")!;
     let animId: number;
     let visible = true;
@@ -222,18 +211,13 @@ export function HeroSection() {
       });
       animId = requestAnimationFrame(draw);
     };
-
-    // Pause when tab is hidden
     const onVisibility = () => { visible = document.visibilityState === "visible"; };
     document.addEventListener("visibilitychange", onVisibility);
-
-    // Pause when canvas is scrolled out of view
     const observer = new IntersectionObserver(
       ([entry]) => { visible = entry.isIntersecting; },
       { threshold: 0 }
     );
     observer.observe(canvas);
-
     draw();
     const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
     window.addEventListener("resize", resize);
@@ -297,7 +281,6 @@ export function HeroSection() {
     <section className="relative min-h-screen flex items-center overflow-hidden">
       <canvas ref={canvasRef} className="absolute inset-0 z-0" />
 
-      {/* Background orbs */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[900px] h-[700px] rounded-full opacity-20"
           style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.7) 0%, transparent 70%)", filter: "blur(60px)", animation: "pulse-glow 5s ease-in-out infinite" }} />
@@ -307,43 +290,40 @@ export function HeroSection() {
           style={{ background: "radial-gradient(ellipse, rgba(167,139,250,0.6) 0%, transparent 70%)", filter: "blur(70px)", animation: "float 11s ease-in-out infinite reverse" }} />
       </div>
 
-      {/* Subtle grid */}
       <div className="absolute inset-0 z-0 opacity-[0.02]"
         style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
 
-      {/* SPLIT SCREEN CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 pt-24 sm:pt-28 pb-16 sm:pb-20 w-full">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
-          {/* LEFT: Headline + CTAs */}
           <div>
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2.5 rounded-full px-5 py-2 text-xs mb-10"
-              style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(34,211,238,0.05))", border: "1px solid rgba(124,58,237,0.28)", backdropFilter: "blur(12px)" }}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500" />
-              </span>
-              <span className="text-violet-300 font-medium">Instagram · Facebook · X · Email — all on autopilot</span>
+            <div className="inline-flex items-center gap-3 rounded-full px-4 py-2 text-xs mb-10"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(12px)" }}>
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="h-3 w-3 fill-yellow-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                ))}
+              </div>
+              <span className="text-zinc-300 font-medium">Loved by 2,400+ growth teams</span>
+              <span className="text-zinc-600">·</span>
+              <span className="text-zinc-500">No credit card required</span>
             </div>
 
-            {/* Headline */}
             <h1 className="text-[42px] sm:text-[56px] md:text-[72px] lg:text-[88px] font-black leading-[0.9] tracking-tight mb-6 md:mb-8">
-              <span className="block text-white">The AI team</span>
+              <span className="block text-white">Your AI team</span>
               <span className="block relative">
                 <span className="gradient-text text-glow">{displayed}</span>
                 <span className="inline-block w-[3px] h-[0.82em] bg-violet-400 ml-1 align-middle animate-pulse" />
               </span>
               <span className="block text-white font-mono text-[0.88em]">
-                <ScrambleText text="for you." />
+                <ScrambleText text="around the clock." />
               </span>
             </h1>
 
             <p className="text-base md:text-xl text-zinc-400 mb-8 md:mb-10 leading-relaxed max-w-lg">
-              Deploy autonomous AI employees that send emails, post on every social network, and research leads — 24/7, zero clicks.
+              Replace repetitive growth work with autonomous AI employees. Cold outreach, social content, lead research — running 24/7 without a headcount.
             </p>
 
-            {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 mb-14">
               <Link ref={btnRef} href="/signup"
                 className="group relative inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-white font-bold text-base overflow-hidden btn-shine"
@@ -352,19 +332,18 @@ export function HeroSection() {
                   boxShadow: "0 0 50px rgba(124,58,237,0.55), 0 0 100px rgba(124,58,237,0.18), inset 0 1px 0 rgba(255,255,255,0.15)",
                   transition: "transform 0.15s ease, box-shadow 0.15s ease",
                 }}>
-                <span className="relative z-10">Deploy your AI team free</span>
+                <span className="relative z-10">Start free — no credit card</span>
                 <ArrowRight className="h-4 w-4 relative z-10 group-hover:translate-x-1 transition-transform" />
                 <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>
               <Link href="#features"
                 className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl text-zinc-300 font-medium text-base transition-all hover:text-white group"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(10px)" }}>
-                Watch it work
+                See how it works
                 <span className="group-hover:translate-x-0.5 transition-transform inline-block">→</span>
               </Link>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-6 max-w-sm">
               {[
                 { value: `${count.teams.toLocaleString()}+`, label: "Teams" },
@@ -379,13 +358,11 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* RIGHT: Live agent preview */}
           <div className="hidden lg:block relative">
             <div style={{ transform: "perspective(1400px) rotateY(-6deg) rotateX(3deg)" }}>
               <LivePreviewCard />
             </div>
 
-            {/* Floating mini stats */}
             <div className="absolute -top-6 -left-6 rounded-2xl px-4 py-3 text-xs"
               style={{ background: "rgba(10,10,15,0.9)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
               <div className="flex items-center gap-2 text-emerald-400 font-semibold">
@@ -400,16 +377,13 @@ export function HeroSection() {
                 <span>Platforms</span>
               </div>
               <div className="flex gap-1.5">
-                {["IG","FB","X","✉"].map(p => (
-                  <span key={p} className="text-xs px-2 py-0.5 rounded-full text-zinc-300"
-                    style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.25)" }}>
-                    {p}
-                  </span>
+                {["IG","FB","X","LI","Em"].map(p => (
+                  <div key={p} className="h-6 w-6 rounded-lg flex items-center justify-center text-[9px] font-bold text-zinc-300"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>{p}</div>
                 ))}
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </section>
