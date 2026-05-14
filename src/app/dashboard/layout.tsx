@@ -14,6 +14,7 @@ const NAV = [
   { href: "/dashboard/workflows",   label: "Workflows",    icon: "Workflow" },
   { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
   { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
+  { href: "/dashboard/competitors", label: "Competitors",  icon: "Radar" },
   { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
   { href: "/dashboard/analytics",   label: "Analytics",    icon: "BarChart3" },
   { href: "/dashboard/team",        label: "Team",         icon: "Users" },

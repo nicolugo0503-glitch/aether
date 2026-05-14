@@ -83,6 +83,8 @@ model User {
 
   workflows    Workflow[]
   workflowRuns WorkflowRun[]
+
+  competitors Competitor[]
 }
 
 model SocialPost {
@@ -334,4 +336,109 @@ model WorkflowRun {
 
   @@index([workflowId, createdAt])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// AI Competitor Intelligence Tracker
+//
+// Users register competitor URLs (pricing page, blog, homepage, careers).
+// A daily cron fetches each tracked URL, diffs against the last snapshot,
+// and if material change is detected, asks GPT to summarize what changed
+// and why it matters. Notifications go to the dashboard + email.
+//
+// Use cases: pricing changes, new feature launches, hiring surges,
+// messaging pivots, fundraising announcements.
+// ─────────────────────────────────────────────────────────────────────
+model Competitor {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String                                    // e.g. "Acme Corp — Pricing"
+  url         String                                    // URL to monitor
+  category    String   @default("general")              // "pricing" | "homepage" | "blog" | "careers" | "general"
+  notes       String?                                   // user's notes on why they're tracking this
+
+  // What user cares about — guides AI summary
+  focus       String?                                   // e.g. "watch for pricing tier changes"
+
+  // Tracking state
+  enabled     Boolean  @default(true)
+  frequency   String   @default("daily")                // "hourly" | "daily" | "weekly"
+  notifyEmail Boolean  @default(true)                   // email user when change detected
+
+  // Latest snapshot (for fast list-page rendering)
+  lastContent      String?                              // truncated last extracted text (10k chars)
+  lastHash         String?                              // sha256 of extracted text
+  lastFetchedAt    DateTime?
+  lastChangeAt     DateTime?
+  lastError        String?
+
+  // Aggregate stats
+  totalScans       Int      @default(0)
+  totalChanges     Int      @default(0)
+
+  // Severity of latest detected change
+  lastSeverity     String?                              // "low" | "medium" | "high" | "critical"
+  lastSummary      String?                              // AI summary of the latest change
+
+  // Scheduling
+  nextScanAt       DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  snapshots CompetitorSnapshot[]
+  changes   CompetitorChange[]
+
+  @@index([userId])
+  @@index([enabled, nextScanAt])
+}
+
+model CompetitorSnapshot {
+  id            String     @id @default(cuid())
+  competitorId  String
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  content       String                                  // extracted text (capped ~30k chars)
+  contentHash   String                                  // sha256
+  httpStatus    Int        @default(200)
+  byteSize      Int        @default(0)
+  fetchedAt     DateTime   @default(now())
+
+  @@index([competitorId, fetchedAt])
+}
+
+model CompetitorChange {
+  id            String     @id @default(cuid())
+  competitorId  String
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  userId        String                                   // denormalized for fast inbox query
+
+  // What changed
+  summary       String                                  // AI 1–2 sentence summary
+  details       String     @default("")                 // longer AI analysis: what + why it matters
+  severity      String                                  // "low" | "medium" | "high" | "critical"
+  signals       String     @default("[]")               // JSON: tags like ["pricing","new-feature","hiring"]
+
+  // Diff context
+  beforeHash    String?
+  afterHash     String
+  charsAdded    Int        @default(0)
+  charsRemoved  Int        @default(0)
+
+  // AI cost
+  tokensIn      Int        @default(0)
+  tokensOut     Int        @default(0)
+  costCents     Int        @default(0)
+
+  // User interaction
+  read          Boolean    @default(false)
+  pinned        Boolean    @default(false)
+  emailedAt     DateTime?
+
+  detectedAt    DateTime   @default(now())
+
+  @@index([competitorId, detectedAt])
+  @@index([userId, read])
 }

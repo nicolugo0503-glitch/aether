@@ -1,11 +1,24 @@
 {
-    "buildCommand": "prisma generate && next build",
-    "installCommand": "npm install --legacy-peer-deps",
-    "framework": "nextjs",
-    "outputDirectory": ".next",
-    "crons": [
-          { "path": "/api/cron/social",    "schedule": "0 0 * * *" },
-          { "path": "/api/cron/agents",    "schedule": "0 0 * * *" },
-          { "path": "/api/cron/workflows", "schedule": "0 0 * * *" }
-    ]
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/cron/social",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/agents",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/workflows",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/competitors",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
