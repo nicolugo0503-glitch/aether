@@ -3,6 +3,7 @@
   "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
   "outputDirectory": ".next",
+    "regions": ["iad1"],
   "crons": [
     { "path": "/api/cron/social",    "schedule": "0 0 * * *" },
     { "path": "/api/cron/agents",    "schedule": "0 0 * * *" },
