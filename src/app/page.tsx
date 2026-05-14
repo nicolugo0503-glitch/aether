@@ -78,50 +78,54 @@ export default function HomePage() {
           <p className="text-center text-xs uppercase tracking-[0.25em] text-zinc-700 mb-10">
             Trusted by teams at
           </p>
-          <div className="relative">
+          {/* Marquee container */}
+          {/* overflow-hidden clips the scrolling logos at section edges */}
+          <div className="relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
               style={{ background: "linear-gradient(to right, #000 0%, transparent 100%)" }} />
             <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
               style={{ background: "linear-gradient(to left, #000 0%, transparent 100%)" }} />
-            <div className="flex gap-16 items-center animate-marquee whitespace-nowrap" style={{ animation: "marquee 28s linear infinite" }}>
+            {/* min-width: max-content prevents flex from shrinking logos */}
+            <div className="flex items-center" style={{ animation: "marquee 28s linear infinite", gap: "4rem", minWidth: "max-content" }}>
               {[
-                <svg key="lumen" height="20" viewBox="0 0 80 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="lumen" width="80" height="20" viewBox="0 0 80 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <circle cx="10" cy="10" r="4" fill="#a78bfa"/>
                   <text x="19" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Lumen</text>
                 </svg>,
-                <svg key="helix" height="20" viewBox="0 0 74 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="helix" width="74" height="20" viewBox="0 0 74 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <path d="M4 16 Q8 4 12 10 Q16 16 20 10" stroke="#22d3ee" strokeWidth="2" fill="none" strokeLinecap="round"/>
                   <text x="26" y="15" fill="white" fontSize="13" fontWeight="800" fontFamily="system-ui" letterSpacing="-0.5">Helix</text>
                 </svg>,
-                <svg key="northwind" height="20" viewBox="0 0 110 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="northwind" width="110" height="20" viewBox="0 0 110 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <polygon points="10,2 14,10 10,18 6,10" fill="none" stroke="#34d399" strokeWidth="1.5"/>
                   <text x="22" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.5">NORTHWIND</text>
                 </svg>,
-                <svg key="parallax" height="20" viewBox="0 0 96 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="parallax" width="96" height="20" viewBox="0 0 96 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <rect x="2" y="6" width="8" height="8" fill="#f472b6" rx="1"/>
                   <rect x="6" y="4" width="8" height="8" fill="none" stroke="#f472b6" strokeWidth="1" rx="1"/>
                   <text x="20" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Parallax</text>
                 </svg>,
-                <svg key="quanta" height="20" viewBox="0 0 84 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="quanta" width="84" height="20" viewBox="0 0 84 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <circle cx="10" cy="10" r="7" fill="none" stroke="#fb923c" strokeWidth="1.5"/>
                   <circle cx="10" cy="10" r="3" fill="#fb923c"/>
                   <text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Quanta</text>
                 </svg>,
-                <svg key="meridian" height="20" viewBox="0 0 100 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="meridian" width="100" height="20" viewBox="0 0 100 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <path d="M2 10 L8 4 L14 10 L8 16Z" fill="#818cf8"/>
                   <text x="20" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.3">Meridian</text>
                 </svg>,
-                <svg key="vortex" height="20" viewBox="0 0 88 20" fill="none" className="opacity-30 hover:opacity-60 transition-opacity">
+                <svg key="vortex" width="88" height="20" viewBox="0 0 88 20" fill="none" className="shrink-0 opacity-50 hover:opacity-80 transition-opacity">
                   <path d="M4 4 Q12 10 4 16 Q8 10 16 10 Q8 10 16 4" stroke="#f87171" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
                   <text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Vortex</text>
                 </svg>,
-                <svg key="lumen2" height="20" viewBox="0 0 80 20" fill="none" className="opacity-30"><circle cx="10" cy="10" r="4" fill="#a78bfa"/><text x="19" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Lumen</text></svg>,
-                <svg key="helix2" height="20" viewBox="0 0 74 20" fill="none" className="opacity-30"><path d="M4 16 Q8 4 12 10 Q16 16 20 10" stroke="#22d3ee" strokeWidth="2" fill="none" strokeLinecap="round"/><text x="26" y="15" fill="white" fontSize="13" fontWeight="800" fontFamily="system-ui" letterSpacing="-0.5">Helix</text></svg>,
-                <svg key="northwind2" height="20" viewBox="0 0 110 20" fill="none" className="opacity-30"><polygon points="10,2 14,10 10,18 6,10" fill="none" stroke="#34d399" strokeWidth="1.5"/><text x="22" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.5">NORTHWIND</text></svg>,
-                <svg key="parallax2" height="20" viewBox="0 0 96 20" fill="none" className="opacity-30"><rect x="2" y="6" width="8" height="8" fill="#f472b6" rx="1"/><rect x="6" y="4" width="8" height="8" fill="none" stroke="#f472b6" strokeWidth="1" rx="1"/><text x="20" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Parallax</text></svg>,
-                <svg key="quanta2" height="20" viewBox="0 0 84 20" fill="none" className="opacity-30"><circle cx="10" cy="10" r="7" fill="none" stroke="#fb923c" strokeWidth="1.5"/><circle cx="10" cy="10" r="3" fill="#fb923c"/><text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Quanta</text></svg>,
-                <svg key="meridian2" height="20" viewBox="0 0 100 20" fill="none" className="opacity-30"><path d="M2 10 L8 4 L14 10 L8 16Z" fill="#818cf8"/><text x="20" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.3">Meridian</text></svg>,
-                <svg key="vortex2" height="20" viewBox="0 0 88 20" fill="none" className="opacity-30"><path d="M4 4 Q12 10 4 16 Q8 10 16 10 Q8 10 16 4" stroke="#f87171" strokeWidth="1.5" fill="none" strokeLinecap="round"/><text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Vortex</text></svg>,
+                /* Duplicate set for seamless loop */
+                <svg key="lumen2" width="80" height="20" viewBox="0 0 80 20" fill="none" className="shrink-0 opacity-50"><circle cx="10" cy="10" r="4" fill="#a78bfa"/><text x="19" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Lumen</text></svg>,
+                <svg key="helix2" width="74" height="20" viewBox="0 0 74 20" fill="none" className="shrink-0 opacity-50"><path d="M4 16 Q8 4 12 10 Q16 16 20 10" stroke="#22d3ee" strokeWidth="2" fill="none" strokeLinecap="round"/><text x="26" y="15" fill="white" fontSize="13" fontWeight="800" fontFamily="system-ui" letterSpacing="-0.5">Helix</text></svg>,
+                <svg key="northwind2" width="110" height="20" viewBox="0 0 110 20" fill="none" className="shrink-0 opacity-50"><polygon points="10,2 14,10 10,18 6,10" fill="none" stroke="#34d399" strokeWidth="1.5"/><text x="22" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.5">NORTHWIND</text></svg>,
+                <svg key="parallax2" width="96" height="20" viewBox="0 0 96 20" fill="none" className="shrink-0 opacity-50"><rect x="2" y="6" width="8" height="8" fill="#f472b6" rx="1"/><rect x="6" y="4" width="8" height="8" fill="none" stroke="#f472b6" strokeWidth="1" rx="1"/><text x="20" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Parallax</text></svg>,
+                <svg key="quanta2" width="84" height="20" viewBox="0 0 84 20" fill="none" className="shrink-0 opacity-50"><circle cx="10" cy="10" r="7" fill="none" stroke="#fb923c" strokeWidth="1.5"/><circle cx="10" cy="10" r="3" fill="#fb923c"/><text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Quanta</text></svg>,
+                <svg key="meridian2" width="100" height="20" viewBox="0 0 100 20" fill="none" className="shrink-0 opacity-50"><path d="M2 10 L8 4 L14 10 L8 16Z" fill="#818cf8"/><text x="20" y="15" fill="white" fontSize="12" fontWeight="600" fontFamily="system-ui" letterSpacing="0.3">Meridian</text></svg>,
+                <svg key="vortex2" width="88" height="20" viewBox="0 0 88 20" fill="none" className="shrink-0 opacity-50"><path d="M4 4 Q12 10 4 16 Q8 10 16 10 Q8 10 16 4" stroke="#f87171" strokeWidth="1.5" fill="none" strokeLinecap="round"/><text x="22" y="15" fill="white" fontSize="13" fontWeight="700" fontFamily="system-ui">Vortex</text></svg>,
               ]}
             </div>
           </div>
