@@ -53,9 +53,9 @@ export default function HomePage() {
       <ProductShowcase />
 
       {/* ── SOCIAL PROOF STATS BAR ───────────────────── */}
-      <section className="py-14 border-y" style={{ borderColor: "rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)" }}>
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="py-16 md:py-20 border-y" style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.015)" }}>
+        <div className="max-w-5xl mx-auto px-5 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
             {[
               { value: "2,400+", label: "Teams in production", icon: "👥" },
               { value: "12M+",   label: "AI tasks completed",  icon: "⚡" },
@@ -63,9 +63,9 @@ export default function HomePage() {
               { value: "< 10m",  label: "Median time to first run", icon: "🚀" },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-2xl mb-1">{s.icon}</div>
-                <div className="text-3xl md:text-4xl font-black gradient-text mb-1">{s.value}</div>
-                <div className="text-zinc-600 text-sm">{s.label}</div>
+                <div className="text-3xl mb-2">{s.icon}</div>
+                <div className="text-4xl md:text-5xl font-black gradient-text mb-1.5">{s.value}</div>
+                <div className="text-zinc-500 text-sm">{s.label}</div>
               </div>
             ))}
           </div>
@@ -141,18 +141,20 @@ export default function HomePage() {
       </div>
 
       {/* ── AGENTS SHOWCASE ──────────────────────────── */}
-      <section id="agents" className="py-16 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(124,58,237,0.05), transparent)" }} />
+      <section id="agents" className="py-20 md:py-36 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(124,58,237,0.07), transparent)" }} />
+        </div>
 
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <div className="text-center mb-14 md:mb-16">
             <div className="inline-block text-xs text-violet-400 uppercase tracking-widest mb-4 border border-violet-500/20 rounded-full px-4 py-1.5"
               style={{ background: "rgba(124,58,237,0.05)" }}>
               Pre-built agents
             </div>
-            <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-6">Meet your<br /><span className="gradient-text">new team.</span></h2>
-            <p className="text-zinc-500 text-lg max-w-xl mx-auto">Four AI employees ready to deploy in minutes. Or build your own with a custom system prompt.</p>
+            <h2 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-5">Meet your<br /><span className="gradient-text">new team.</span></h2>
+            <p className="text-zinc-400 text-lg max-w-xl mx-auto">Four AI employees ready to deploy in minutes. Or build your own with a custom system prompt.</p>
           </div>
 
           <AgentsShowcase />
@@ -160,13 +162,14 @@ export default function HomePage() {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────── */}
-      <section className="py-16 md:py-32">
+      <section className="py-20 md:py-36 relative"
+        style={{ background: "rgba(255,255,255,0.012)", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div className="max-w-4xl mx-auto px-5 sm:px-6">
-          <div className="text-center mb-12 md:mb-20">
+          <div className="text-center mb-12 md:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-white mb-4">
               Live in <span className="gradient-text">10 minutes.</span>
             </h2>
-            <p className="text-zinc-500 text-lg">No code. No consultants. No 3-month onboarding.</p>
+            <p className="text-zinc-400 text-lg">No code. No consultants. No 3-month onboarding.</p>
           </div>
           <div className="space-y-4">
             {[
@@ -175,14 +178,14 @@ export default function HomePage() {
               { n: "03", title: "Set it and forget it", desc: "Run campaigns manually or set a daily schedule. Your AI team works 24/7 — sends reports, posts content, and never needs a day off.", color: "#059669" },
             ].map((step) => (
               <div key={step.n}
-                className="flex flex-col sm:flex-row gap-4 sm:gap-6 rounded-3xl p-6 sm:p-8 transition-all duration-300 hover:scale-[1.005]"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div className="shrink-0 h-12 w-12 sm:h-16 sm:w-16 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg"
-                  style={{ background: `${step.color}15`, color: step.color, border: `1px solid ${step.color}25`, fontFamily: "monospace" }}>
+                className="flex flex-col sm:flex-row gap-4 sm:gap-6 rounded-3xl p-7 sm:p-9 transition-all duration-300 hover:scale-[1.005]"
+                style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <div className="shrink-0 h-14 w-14 sm:h-20 sm:w-20 rounded-2xl flex items-center justify-center font-black text-xl sm:text-2xl"
+                  style={{ background: `${step.color}15`, color: step.color, border: `1px solid ${step.color}30`, fontFamily: "monospace" }}>
                   {step.n}
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg sm:text-xl mb-1.5 sm:mb-2">{step.title}</h3>
+                  <h3 className="text-white font-bold text-xl sm:text-2xl mb-2 sm:mb-3">{step.title}</h3>
                   <p className="text-zinc-400 leading-relaxed text-sm sm:text-base">{step.desc}</p>
                 </div>
               </div>
@@ -195,10 +198,15 @@ export default function HomePage() {
       <ComparisonSection />
 
       {/* ── TESTIMONIALS ─────────────────────────────── */}
-      <section className="py-20 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6">
-          <p className="text-center text-xs uppercase tracking-widest text-zinc-700 mb-12">What teams are saying</p>
-          <div className="grid md:grid-cols-3 gap-4">
+      <section className="py-24 md:py-36 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <div className="text-center mb-14">
+            <div className="inline-block text-xs text-zinc-600 uppercase tracking-widest mb-4 border border-white/[0.06] rounded-full px-4 py-1.5">
+              Customer stories
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-black text-white">What teams are saying.</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
             {[
               {
                 quote: "Ava sent 847 personalized emails before 9 AM. We closed 12 demos from that batch. I haven't touched outreach since.",
@@ -228,22 +236,22 @@ export default function HomePage() {
                 stars: 5,
               },
             ].map((t, i) => (
-              <div key={i} className="rounded-3xl p-8 flex flex-col transition-all duration-300 hover:-translate-y-1"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div className="flex gap-1 mb-5">
+              <div key={i} className="rounded-3xl p-8 md:p-9 flex flex-col transition-all duration-300 hover:-translate-y-1.5"
+                style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="flex gap-1 mb-6">
                   {[...Array(t.stars)].map((_, j) => (
-                    <Star key={j} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                    <Star key={j} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-zinc-300 leading-relaxed flex-1 mb-7 text-sm">&ldquo;{t.quote}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                <p className="text-zinc-200 leading-relaxed flex-1 mb-8 text-base">&ldquo;{t.quote}&rdquo;</p>
+                <div className="flex items-center gap-3 pt-6 border-t border-white/[0.06]">
+                  <div className="h-11 w-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
                     style={{ background: t.gradient }}>
                     {t.initials}
                   </div>
                   <div>
-                    <div className="text-white font-semibold text-sm">{t.name}</div>
-                    <div className="text-zinc-600 text-xs">{t.role} · {t.company}</div>
+                    <div className="text-white font-bold text-sm">{t.name}</div>
+                    <div className="text-zinc-500 text-xs mt-0.5">{t.role} · {t.company}</div>
                   </div>
                 </div>
               </div>

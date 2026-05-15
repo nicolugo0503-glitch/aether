@@ -15,14 +15,15 @@ const ROWS = [
 
 export function ComparisonSection() {
   return (
-    <section className="py-24 md:py-40 relative overflow-hidden">
+    <section className="py-24 md:py-40 relative overflow-hidden"
+      style={{ background: "rgba(255,255,255,0.012)", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0"
-          style={{ background: "radial-gradient(ellipse 70% 50% at 50% 50%, rgba(124,58,237,0.06), transparent)" }} />
+          style={{ background: "radial-gradient(ellipse 70% 50% at 50% 50%, rgba(124,58,237,0.08), transparent)" }} />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
+      <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6">
         {/* Header */}
         <div className="text-center mb-14 md:mb-20">
           <div className="inline-flex items-center gap-2 text-xs text-violet-400 uppercase tracking-widest mb-4 border border-violet-500/20 rounded-full px-4 py-1.5"
@@ -60,7 +61,7 @@ export function ComparisonSection() {
               key={i}
               className="grid grid-cols-3 border-b transition-colors hover:bg-white/[0.015]"
               style={{ borderColor: "rgba(255,255,255,0.04)" }}>
-              <div className="px-6 py-4 text-zinc-300 text-sm flex items-center">{row.label}</div>
+              <div className="px-6 py-5 text-zinc-300 text-sm flex items-center font-medium">{row.label}</div>
               <div className="px-6 py-4 flex items-center justify-center border-x"
                 style={{ borderColor: "rgba(255,255,255,0.04)", background: "rgba(124,58,237,0.03)" }}>
                 {row.aether ? (
@@ -118,7 +119,7 @@ export function ComparisonSection() {
             Replace your manual work today — free
             <span>→</span>
           </a>
-          <p className="text-zinc-700 text-xs mt-4">No credit card · Cancel anytime</p>
+          <p className="text-zinc-600 text-sm mt-4">No credit card required · Cancel anytime</p>
         </div>
       </div>
     </section>
