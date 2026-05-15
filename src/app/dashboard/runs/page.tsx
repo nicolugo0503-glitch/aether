@@ -3,10 +3,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import {
-  Bot, Play, Gauge, TrendingUp, TrendingDown, Minus,
+  Bot, Gauge, TrendingUp, TrendingDown, Minus,
   ChevronRight, Settings, Megaphone, Share2,
-  ArrowUpRight, CheckCircle2, Plus, Sparkles,
-  Activity, ListChecks, CreditCard, Zap, BarChart3,
+  CheckCircle2, Plus, Sparkles,
+  Activity, ListChecks, CreditCard, BarChart3,
 } from "lucide-react";
 import { Aurora }          from "./_components/aurora";
 import { ParticleCanvas } from "./_components/particle-canvas";
@@ -14,9 +14,7 @@ import { Sparkline }       from "./_components/sparkline";
 import { AnimatedCounter } from "./_components/animated-counter";
 import { LiveFeed, type FeedItem } from "./_components/live-feed";
 import { CommandPalette }  from "./_components/command-palette";
-import { HoloCard }        from "./_components/holo-card";
 import { Typewriter }      from "./_components/typewriter";
-import { RadialGauge }     from "./_components/radial-gauge";
 
 function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up") {
   const pts: number[] = [];
@@ -128,10 +126,6 @@ export default async function DashboardHome() {
           from { opacity:0; transform:translateX(-8px); }
           to   { opacity:1; transform:translateX(0); }
         }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
         @keyframes barGrow {
           from { width: 0; }
           to   { width: ${pct}%; }
@@ -190,15 +184,12 @@ export default async function DashboardHome() {
 
         <div className="relative z-10" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
-          {/* ══════════════════════════════════
-              HEADER
-          ══════════════════════════════════ */}
+          {/* HEADER */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             gap: 16, flexWrap: "wrap", animation: "statusIn 0.5s ease both",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              {/* Avatar */}
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <div style={{
                   position: "absolute", inset: -8, borderRadius: "50%",
@@ -289,9 +280,7 @@ export default async function DashboardHome() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════
-              STAT CARDS — 4 across
-          ══════════════════════════════════ */}
+          {/* STAT CARDS */}
           <div className="dash-stat-grid">
             {STAT_CARDS.map((s, i) => {
               const TI = s.trend === "up" ? TrendingUp : s.trend === "down" ? TrendingDown : Minus;
@@ -305,17 +294,9 @@ export default async function DashboardHome() {
                     background: "rgba(255,255,255,0.028)",
                     border: "1px solid rgba(255,255,255,0.07)",
                     borderLeft: `3px solid ${s.color}`,
-                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 transparent`,
-                    transition: "box-shadow 0.2s ease, border-color 0.2s ease",
-                  }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 30px ${s.color}18`;
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 transparent`;
-                    }}
-                  >
-                    {/* Corner glow */}
+                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04)`,
+                    transition: "box-shadow 0.2s ease",
+                  }}>
                     <div style={{
                       position: "absolute", top: -40, right: -40, width: 120, height: 120,
                       borderRadius: "50%",
@@ -324,7 +305,6 @@ export default async function DashboardHome() {
                     }} />
 
                     <div style={{ position: "relative", zIndex: 1 }}>
-                      {/* Icon + label row */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                         <span style={{ fontSize: 9, fontWeight: 800, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.12em" }}>{s.label}</span>
                         <div style={{
@@ -336,7 +316,6 @@ export default async function DashboardHome() {
                         </div>
                       </div>
 
-                      {/* Big number */}
                       <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 14 }}>
                         {s.prefix && <span style={{ fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{s.prefix}</span>}
                         <span style={{ fontSize: 48, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-2px" }}>
@@ -345,7 +324,6 @@ export default async function DashboardHome() {
                         {s.suffix && <span style={{ fontSize: 13, color: "#3f3f46", fontWeight: 500 }}>{s.suffix}</span>}
                       </div>
 
-                      {/* Trend + sparkline */}
                       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
                         <div style={{
                           display: "flex", alignItems: "center", gap: 4,
@@ -365,9 +343,7 @@ export default async function DashboardHome() {
             })}
           </div>
 
-          {/* ══════════════════════════════════
-              MAIN GRID — FEED + SIDEBAR
-          ══════════════════════════════════ */}
+          {/* MAIN GRID */}
           <div className="dash-main-grid">
 
             {/* LIVE ACTIVITY FEED */}
@@ -377,7 +353,6 @@ export default async function DashboardHome() {
               border: "1px solid rgba(255,255,255,0.07)",
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
             }}>
-              {/* Feed header */}
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "16px 20px",
@@ -411,12 +386,10 @@ export default async function DashboardHome() {
                   padding: "5px 12px", borderRadius: 8,
                   border: "1px solid rgba(255,255,255,0.06)",
                   background: "rgba(255,255,255,0.02)",
-                  transition: "all 0.15s ease",
                 }}>
                   View all <ChevronRight size={11} />
                 </Link>
               </div>
-
               <LiveFeed initialEvents={feedEvents} />
             </div>
 
@@ -542,13 +515,11 @@ export default async function DashboardHome() {
                   </span>
                 </div>
 
-                {/* Usage numbers */}
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
                   <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-1px" }}>{runsUsed}</span>
                   <span style={{ fontSize: 13, color: "#3f3f46" }}>/ {effectiveRunLimit} runs</span>
                 </div>
 
-                {/* Progress bar */}
                 <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.06)", marginBottom: 12, overflow: "hidden" }}>
                   <div className="usage-bar" style={{ width: `${pct}%` }} />
                 </div>
@@ -576,9 +547,7 @@ export default async function DashboardHome() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════
-              BOTTOM NAV STRIP
-          ══════════════════════════════════ */}
+          {/* BOTTOM NAV */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingBottom: 8 }}>
             {[
               { href: "/dashboard/runs",      icon: ListChecks, label: "All Runs" },
