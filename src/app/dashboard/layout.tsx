@@ -14,6 +14,7 @@ const NAV = [
   { href: "/dashboard/workflows",   label: "Workflows",    icon: "Workflow" },
   { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
   { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
+  { href: "/dashboard/inbox",       label: "Smart Inbox",  icon: "Inbox" },
   { href: "/dashboard/competitors", label: "Competitors",  icon: "Radar" },
   { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
   { href: "/dashboard/analytics",   label: "Analytics",    icon: "BarChart3" },
@@ -141,4 +142,3 @@ export default async function DashboardLayout({ children }: { children: React.Re
 }
 
 // build trigger
-/// build: v4
