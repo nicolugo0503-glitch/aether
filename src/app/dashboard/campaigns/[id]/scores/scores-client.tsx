@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, Sparkles, Flame, Zap, Snowflake, RefreshCw, Search,
-  CheckCircle2, XCircle, MinusCircle, Loader2, Save, AlertTriangle, Trophy,
+  CheckCircle2, XCircle, MinusCircle, Loader2, Save, AlertTriangle, Trophy, Download,
 } from "lucide-react";
 
 interface LeadScore {
@@ -115,6 +115,31 @@ export default function LeadScoresClient({
     }
   }
 
+  function exportCSV() {
+    const rows = [
+      ["Score", "Tier", "Name", "Email", "Company", "Reasoning", "Signals", "Red Flags", "Status"],
+      ...visible.map(s => [
+        String(s.score),
+        s.tier,
+        s.leadName || "",
+        s.leadEmail,
+        s.leadCompany || "",
+        s.reasoning,
+        s.signals.join("; "),
+        s.redFlags.join("; "),
+        s.contacted ? "Contacted" : s.score >= threshold ? "Queued" : "Below threshold",
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${campaignName.replace(/[^a-z0-9]/gi, "_")}_leads.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const visible = useMemo(() => {
     return scores.filter(s => {
       if (filterTier !== "ALL" && s.tier !== filterTier) return false;
@@ -151,6 +176,20 @@ export default function LeadScoresClient({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {visible.length > 0 && (
+              <button
+                onClick={exportCSV}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#a1a1aa",
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+            )}
             <button
               onClick={() => runScoring(scores.length > 0)}
               disabled={scoring}
