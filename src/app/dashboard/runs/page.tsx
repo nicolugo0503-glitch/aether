@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -126,6 +127,10 @@ export default async function DashboardHome() {
           from { opacity:0; transform:translateX(-8px); }
           to   { opacity:1; transform:translateX(0); }
         }
+        @keyframes shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
         @keyframes barGrow {
           from { width: 0; }
           to   { width: ${pct}%; }
@@ -176,6 +181,10 @@ export default async function DashboardHome() {
           background: linear-gradient(90deg, #7c3aed, #ec4899);
           animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) both 0.6s;
         }
+
+        .stat-card a:hover {
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), var(--card-glow, 0 0 30px rgba(124,58,237,0.09)) !important;
+        }
       `}</style>
 
       <div className="relative min-h-screen">
@@ -184,12 +193,15 @@ export default async function DashboardHome() {
 
         <div className="relative z-10" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
-          {/* HEADER */}
+          {/* ══════════════════════════════════
+              HEADER
+          ══════════════════════════════════ */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             gap: 16, flexWrap: "wrap", animation: "statusIn 0.5s ease both",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {/* Avatar */}
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <div style={{
                   position: "absolute", inset: -8, borderRadius: "50%",
@@ -280,13 +292,15 @@ export default async function DashboardHome() {
             </div>
           </div>
 
-          {/* STAT CARDS */}
+          {/* ══════════════════════════════════
+              STAT CARDS — 4 across
+          ══════════════════════════════════ */}
           <div className="dash-stat-grid">
             {STAT_CARDS.map((s, i) => {
               const TI = s.trend === "up" ? TrendingUp : s.trend === "down" ? TrendingDown : Minus;
               const tc = s.trend === "up" ? "#10b981" : s.trend === "down" ? "#ef4444" : "#71717a";
               return (
-                <div key={s.label} className="stat-card">
+                <div key={s.label} className="stat-card" style={{ "--card-glow": `0 0 30px ${s.color}18` } as CSSProperties}>
                   <Link href={s.href} style={{
                     display: "block", textDecoration: "none",
                     borderRadius: 20, padding: "22px 22px 18px",
@@ -297,6 +311,7 @@ export default async function DashboardHome() {
                     boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04)`,
                     transition: "box-shadow 0.2s ease",
                   }}>
+                    {/* Corner glow */}
                     <div style={{
                       position: "absolute", top: -40, right: -40, width: 120, height: 120,
                       borderRadius: "50%",
@@ -305,6 +320,7 @@ export default async function DashboardHome() {
                     }} />
 
                     <div style={{ position: "relative", zIndex: 1 }}>
+                      {/* Icon + label row */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                         <span style={{ fontSize: 9, fontWeight: 800, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.12em" }}>{s.label}</span>
                         <div style={{
@@ -316,6 +332,7 @@ export default async function DashboardHome() {
                         </div>
                       </div>
 
+                      {/* Big number */}
                       <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 14 }}>
                         {s.prefix && <span style={{ fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{s.prefix}</span>}
                         <span style={{ fontSize: 48, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-2px" }}>
@@ -324,6 +341,7 @@ export default async function DashboardHome() {
                         {s.suffix && <span style={{ fontSize: 13, color: "#3f3f46", fontWeight: 500 }}>{s.suffix}</span>}
                       </div>
 
+                      {/* Trend + sparkline */}
                       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
                         <div style={{
                           display: "flex", alignItems: "center", gap: 4,
@@ -343,7 +361,9 @@ export default async function DashboardHome() {
             })}
           </div>
 
-          {/* MAIN GRID */}
+          {/* ══════════════════════════════════
+              MAIN GRID — FEED + SIDEBAR
+          ══════════════════════════════════ */}
           <div className="dash-main-grid">
 
             {/* LIVE ACTIVITY FEED */}
@@ -353,6 +373,7 @@ export default async function DashboardHome() {
               border: "1px solid rgba(255,255,255,0.07)",
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
             }}>
+              {/* Feed header */}
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "16px 20px",
@@ -386,10 +407,12 @@ export default async function DashboardHome() {
                   padding: "5px 12px", borderRadius: 8,
                   border: "1px solid rgba(255,255,255,0.06)",
                   background: "rgba(255,255,255,0.02)",
+                  transition: "all 0.15s ease",
                 }}>
                   View all <ChevronRight size={11} />
                 </Link>
               </div>
+
               <LiveFeed initialEvents={feedEvents} />
             </div>
 
@@ -515,11 +538,13 @@ export default async function DashboardHome() {
                   </span>
                 </div>
 
+                {/* Usage numbers */}
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
                   <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-1px" }}>{runsUsed}</span>
                   <span style={{ fontSize: 13, color: "#3f3f46" }}>/ {effectiveRunLimit} runs</span>
                 </div>
 
+                {/* Progress bar */}
                 <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.06)", marginBottom: 12, overflow: "hidden" }}>
                   <div className="usage-bar" style={{ width: `${pct}%` }} />
                 </div>
@@ -547,7 +572,9 @@ export default async function DashboardHome() {
             </div>
           </div>
 
-          {/* BOTTOM NAV */}
+          {/* ══════════════════════════════════
+              BOTTOM NAV STRIP
+          ══════════════════════════════════ */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingBottom: 8 }}>
             {[
               { href: "/dashboard/runs",      icon: ListChecks, label: "All Runs" },
