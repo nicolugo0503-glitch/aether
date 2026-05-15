@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { LogOut } from "lucide-react";
 import { AetherMark } from "@/components/ui/logo";
 import { MobileTabBar } from "@/components/dashboard/mobile-tab-bar";
@@ -8,24 +9,40 @@ import { NavLink } from "@/components/dashboard/nav-link";
 import { ChatWidget } from "@/components/widgets/ChatWidget";
 import { FeedbackWidget } from "@/components/widgets/FeedbackWidget";
 
-const NAV = [
-  { href: "/dashboard",             label: "Overview",     icon: "LayoutDashboard", exact: true },
-  { href: "/dashboard/agents",      label: "AI Employees", icon: "Bot" },
-  { href: "/dashboard/workflows",   label: "Workflows",    icon: "Workflow" },
-  { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
-  { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
-  { href: "/dashboard/inbox",       label: "Smart Inbox",  icon: "Inbox" },
-  { href: "/dashboard/competitors", label: "Competitors",  icon: "Radar" },
-  { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
-  { href: "/dashboard/analytics",   label: "Analytics",    icon: "BarChart3" },
-  { href: "/dashboard/team",        label: "Team",         icon: "Users" },
-  { href: "/dashboard/referrals",   label: "Referrals",    icon: "Gift" },
-  { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
-  { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
-];
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Live badge counts — fire in parallel, fail silently
+  const [inboxUnread, competitorChanges] = await Promise.all([
+    prisma.emailReply
+      .count({ where: { userId: user.id, status: "new" } })
+      .catch(() => 0),
+    prisma.competitorChange
+      .count({
+        where: {
+          userId: user.id,
+          detectedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        },
+      })
+      .catch(() => 0),
+  ]);
+
+  const NAV = [
+    { href: "/dashboard",             label: "Overview",     icon: "LayoutDashboard", exact: true },
+    { href: "/dashboard/agents",      label: "AI Employees", icon: "Bot" },
+    { href: "/dashboard/workflows",   label: "Workflows",    icon: "Workflow" },
+    { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
+    { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
+    { href: "/dashboard/inbox",       label: "Smart Inbox",  icon: "Inbox",   badge: inboxUnread },
+    { href: "/dashboard/competitors", label: "Competitors",  icon: "Radar",   badge: competitorChanges },
+    { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
+    { href: "/dashboard/analytics",   label: "Analytics",    icon: "BarChart3" },
+    { href: "/dashboard/team",        label: "Team",         icon: "Users" },
+    { href: "/dashboard/referrals",   label: "Referrals",    icon: "Gift" },
+    { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
+    { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
+  ];
 
   const initials = (user.name || user.email)[0].toUpperCase();
   const displayName = user.name || user.email.split("@")[0];
@@ -65,7 +82,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {NAV.map((item) => (
-            <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} exact={item.exact} />
+            <NavLink key={item.href} href={item.href} icon={item.icon} label={item.label} exact={item.exact} badge={item.badge} />
           ))}
           {user.email === "useaether.ai@gmail.com" && (
             <NavLink href="/dashboard/feedback" icon="MessageSquare" label="Feedback" />
