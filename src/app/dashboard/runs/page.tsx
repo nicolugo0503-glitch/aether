@@ -1,461 +1,619 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Activity, Zap, TrendingUp, Target, BarChart3 } from "lucide-react";
+import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
+import {
+  Bot, Play, Gauge, TrendingUp, TrendingDown, Minus,
+  ChevronRight, Settings, Megaphone, Share2,
+  ArrowUpRight, CheckCircle2, Plus, Sparkles,
+  Activity, ListChecks, CreditCard, Zap, BarChart3,
+} from "lucide-react";
+import { Aurora }          from "./_components/aurora";
+import { ParticleCanvas } from "./_components/particle-canvas";
+import { Sparkline }       from "./_components/sparkline";
+import { AnimatedCounter } from "./_components/animated-counter";
+import { LiveFeed, type FeedItem } from "./_components/live-feed";
+import { CommandPalette }  from "./_components/command-palette";
+import { HoloCard }        from "./_components/holo-card";
+import { Typewriter }      from "./_components/typewriter";
+import { RadialGauge }     from "./_components/radial-gauge";
 
-export const metadata = {
-  title: "Execution Chronicle | Aether Dashboard",
-};
-
-function seedHash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up") {
+  const pts: number[] = [];
+  let v = 30 + (seed % 20);
+  for (let i = 0; i < n; i++) {
+    const noise = ((seed * (i + 1) * 1234567) % 13) - 6;
+    v += trend === "up" ? 2 + noise * 0.4 : trend === "down" ? -1 + noise * 0.4 : noise;
+    pts.push(Math.max(5, Math.min(95, v)));
   }
-  return Math.abs(h);
+  return pts;
 }
 
-function MiniWave({ color, seed }: { color: string; seed: number }) {
-  const heights = Array.from({ length: 16 }, (_, i) => {
-    const rand = seedHash(`${seed}-${i}`) % 100;
-    return 30 + rand;
-  });
+export default async function DashboardHome() {
+  const user = (await getCurrentUser())!;
 
-  return (
-    <svg viewBox="0 0 160 60" className="w-full h-6" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={`grad-run-${seed}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={color} stopOpacity="0.8" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.1" />
-        </linearGradient>
-      </defs>
-      {heights.map((h, i) => (
-        <g key={i}>
-          <rect x={i * 10} y={60 - h} width="8" height={h} fill={`url(#grad-run-${seed})`}>
-            <animate attributeName="height" values={`${h};${h * 1.3};${h * 0.7};${h}`} dur="2.4s" repeatCount="indefinite" />
-            <animate attributeName="y" values={`${60 - h};${60 - h * 1.3};${60 - h * 0.7};${60 - h}`} dur="2.4s" repeatCount="indefinite" />
-          </rect>
-        </g>
-      ))}
-    </svg>
-  );
-}
+  const [agents, recentRuns, totals, allCount, agentCount, recentSocial] = await Promise.all([
+    prisma.agent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }).catch(() => []),
+    prisma.run.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10, include: { agent: true } }).catch(() => []),
+    prisma.run.aggregate({ where: { userId: user.id, status: "success" }, _sum: { tokensIn: true, tokensOut: true, costCents: true }, _count: true }).catch(() => ({ _sum: { tokensIn: null, tokensOut: null, costCents: null }, _count: 0 })),
+    prisma.run.count({ where: { userId: user.id } }).catch(() => 0),
+    prisma.agent.count({ where: { userId: user.id } }).catch(() => 0),
+    prisma.socialPost.findMany({ where: { userId: user.id, status: { not: "draft" } }, orderBy: { createdAt: "desc" }, take: 6 }).catch(() => []),
+  ]);
 
-function CircuitTrace({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 200 80" className="w-full h-10 absolute inset-0">
-      <defs>
-        <filter id="glow-run" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <path d="M 10 40 L 50 40 L 50 20 L 100 20 L 100 60 L 150 60 L 150 40 L 190 40"
-        stroke={color} strokeWidth="1.5" fill="none" opacity="0.6" filter="url(#glow-run)" strokeDasharray="300">
-        <animate attributeName="strokeDashoffset" from="300" to="0" dur="3s" repeatCount="indefinite" />
-      </path>
-      <circle cx="50" cy="40" r="2.5" fill={color} opacity="0.8" filter="url(#glow-run)">
-        <animate attributeName="r" values="2.5;3.5;2.5" dur="1.5s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="150" cy="60" r="2.5" fill={color} opacity="0.8" filter="url(#glow-run)">
-        <animate attributeName="r" values="2.5;3.5;2.5" dur="1.5s" repeatCount="indefinite" />
-      </circle>
-    </svg>
-  );
-}
-
-function ChromaticNumber({ value }: { value: string | number }) {
-  return (
-    <div className="relative inline-block">
-      <span className="text-transparent">{value}</span>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span style={{ color: "#ff0033", filter: "blur(0.5px)", transform: "translateX(-0.5px)", position: "absolute" }}>{value}</span>
-        <span style={{ color: "#00ffee", filter: "blur(0.5px)", transform: "translateX(0.5px)", position: "absolute" }}>{value}</span>
-        <span style={{ color: "inherit", position: "relative" }}>{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function StatusPulse({ status }: { status: string }) {
-  const cfg: Record<string, { color: string; label: string }> = {
-    success:   { color: "#10b981", label: "success" },
-    completed: { color: "#10b981", label: "success" },
-    COMPLETED: { color: "#10b981", label: "success" },
-    error:     { color: "#ef4444", label: "error" },
-    failed:    { color: "#ef4444", label: "error" },
-    FAILED:    { color: "#ef4444", label: "error" },
-    running:   { color: "#f59e0b", label: "running" },
-    RUNNING:   { color: "#f59e0b", label: "running" },
-    pending:   { color: "#6366f1", label: "pending" },
-    PENDING:   { color: "#6366f1", label: "pending" },
-  };
-  const c = cfg[status] || { color: "#71717a", label: status };
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: "0.4rem",
-      padding: "0.3rem 0.75rem", borderRadius: "20px",
-      background: `${c.color}1e`, border: `1px solid ${c.color}44`,
-      fontSize: "0.72rem", fontWeight: 700, color: c.color, letterSpacing: "0.05em",
-    }}>
-      <span style={{
-        width: "6px", height: "6px", borderRadius: "50%",
-        background: c.color, boxShadow: `0 0 8px ${c.color}`,
-        display: "inline-block",
-        animation: status === "RUNNING" ? "breathe-run 1s ease-in-out infinite" : "none",
-      }} />
-      {c.label}
-    </span>
-  );
-}
-
-export default async function RunsPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const runs = await prisma.run.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { agent: { select: { name: true } } },
-  });
-
-  const completedRuns = runs.filter((r) => ["success","completed","COMPLETED"].includes(r.status)).length;
-  const failedRuns = runs.filter((r) => ["error","failed","FAILED"].includes(r.status)).length;
-  const runningRuns = runs.filter((r) => ["running","RUNNING"].includes(r.status)).length;
-  const successRate = runs.length > 0 ? Math.round((completedRuns / runs.length) * 100) : 0;
-
-  const CSS = `
-    @property --ang {
-      syntax: '<angle>';
-      initial-value: 0deg;
-      inherits: false;
-    }
-    @keyframes spin-ang { to { --ang: 360deg; } }
-    @keyframes orbit-1 {
-      0% { transform: rotate(0deg) translateX(10px) rotate(0deg); }
-      100% { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
-    }
-    @keyframes orbit-2 {
-      0% { transform: rotate(120deg) translateX(10px) rotate(-120deg); }
-      100% { transform: rotate(480deg) translateX(10px) rotate(-480deg); }
-    }
-    @keyframes drift-run {
-      0%, 100% { transform: translate(0, 0); }
-      33% { transform: translate(30px, -20px); }
-      66% { transform: translate(-20px, 30px); }
-    }
-    @keyframes holo-sweep-run {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-    @keyframes breathe-run {
-      0%, 100% { opacity: 0.4; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.4); }
-    }
-    body { background: #0a0e27; color: #e0e7ff; }
-    .aurora-run { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-    .aurora-blob-run {
-      position: absolute; border-radius: 50%; filter: blur(80px);
-      animation: drift-run 8s ease-in-out infinite; opacity: 0.15;
-    }
-    .blob-1-run { width:400px;height:400px;background:radial-gradient(circle,#f59e0b,transparent);top:-100px;left:-100px; }
-    .blob-2-run { width:500px;height:500px;background:radial-gradient(circle,#ef4444,transparent);bottom:-150px;right:-150px;animation-delay:2s; }
-    .blob-3-run { width:350px;height:350px;background:radial-gradient(circle,#10b981,transparent);top:50%;left:50%;animation-delay:4s; }
-    .blob-4-run { width:450px;height:450px;background:radial-gradient(circle,#f97316,transparent);top:40%;right:10%;animation-delay:6s; }
-    .container-run { position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:2rem; }
-    .hero-banner-run {
-      position:relative;border-radius:16px;padding:3rem 2rem;margin-bottom:3rem;
-      border:1px solid rgba(245,158,11,0.3);overflow:hidden;display:flex;align-items:center;gap:2rem;
-      animation:spin-ang 6s linear infinite;
-      background-image:conic-gradient(from var(--ang),#f59e0b,#ef4444,#f97316,#f59e0b);
-      background-clip:padding-box;
-    }
-    .hero-banner-run::before {
-      content:'';position:absolute;inset:1px;border-radius:15px;
-      background:linear-gradient(135deg,rgba(10,14,39,0.95),rgba(20,24,50,0.95));pointer-events:none;
-    }
-    .hero-content-run { position:relative;z-index:1;flex:1; }
-    .hero-icon-run { position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;z-index:2; }
-    .hero-title-run {
-      font-size:2.5rem;font-weight:700;margin-bottom:0.5rem;
-      background:linear-gradient(135deg,#f59e0b,#ef4444,#f97316);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    }
-    .hero-subtitle-run { font-size:1rem;color:#a0aec0; }
-    .stats-grid-run { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;margin-bottom:3rem; }
-    .stat-card-run {
-      position:relative;border-radius:12px;padding:1.5rem;
-      animation:spin-ang 6s linear infinite;
-      background-image:conic-gradient(from var(--ang),#f59e0b,#ef4444,#f97316,#f59e0b);
-      background-clip:padding-box;transition:all 0.3s ease;
-    }
-    .stat-card-run::before {
-      content:'';position:absolute;inset:1px;border-radius:11px;
-      background:linear-gradient(135deg,rgba(10,14,39,0.9),rgba(20,24,50,0.9));pointer-events:none;z-index:1;
-    }
-    .stat-card-run:hover { transform:translateY(-4px);box-shadow:0 20px 40px rgba(245,158,11,0.15); }
-    .stat-label-run { position:relative;z-index:2;font-size:0.75rem;color:#a0aec0;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem; }
-    .stat-value-run { position:relative;z-index:2;font-size:2.5rem;font-weight:700;color:#e0e7ff;margin-bottom:0.75rem; }
-    .stat-content-run { position:relative;z-index:2;height:48px; }
-    .circuit-run { position:relative;height:40px; }
-    .miniwave-run { height:24px; }
-    .holo3d-run { transform-style:preserve-3d;transition:transform 0.3s ease; }
-    .section-title-run {
-      font-size:1.5rem;font-weight:700;margin-bottom:1.5rem;color:#e0e7ff;
-      display:flex;align-items:center;gap:0.75rem;
-    }
-    .section-title-run::after { content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(245,158,11,0.4),transparent); }
-    .run-row-run {
-      position:relative;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:0.75rem;
-      border:1px solid rgba(245,158,11,0.15);
-      animation:spin-ang 6s linear infinite;
-      background-image:conic-gradient(from var(--ang),#f59e0b,#ef4444,#f97316,#f59e0b);
-      background-clip:padding-box;transition:all 0.3s ease;
-    }
-    .run-row-run::before {
-      content:'';position:absolute;inset:1px;border-radius:9px;
-      background:linear-gradient(135deg,rgba(10,14,39,0.85),rgba(20,24,50,0.85));pointer-events:none;z-index:1;
-    }
-    .run-row-run::after {
-      content:'';position:absolute;inset:0;border-radius:10px;
-      background:linear-gradient(135deg,transparent,rgba(245,158,11,0.08),transparent);
-      animation:holo-sweep-run 3s ease-in-out infinite;pointer-events:none;
-    }
-    .run-row-run:hover { border-color:rgba(245,158,11,0.3);transform:translateY(-2px);box-shadow:0 12px 30px rgba(245,158,11,0.1); }
-    .run-inner-run { position:relative;z-index:2;display:flex;align-items:center;gap:1.25rem;width:100%;flex-wrap:wrap; }
-    .run-number-run { font-size:0.75rem;color:#a0aec0;min-width:40px;font-family:monospace; }
-    .run-agent-run { font-weight:600;color:#e0e7ff;flex:1;min-width:150px; }
-    .run-time-run { font-size:0.8rem;color:#a0aec0; }
-    .run-cost-run { font-size:0.875rem;font-weight:600;color:#10b981; }
-    .run-output-run { font-size:0.75rem;color:#71717a;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-    .nav-strip-run {
-      position:relative;z-index:2;display:flex;gap:1rem;padding-top:2rem;
-      border-top:1px solid rgba(245,158,11,0.2);flex-wrap:wrap;
-    }
-    .nav-link-run {
-      display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.5rem;
-      border-radius:8px;background:rgba(245,158,11,0.15);color:#e0e7ff;
-      text-decoration:none;font-weight:500;transition:all 0.3s ease;
-      border:1px solid rgba(245,158,11,0.3);
-    }
-    .nav-link-run:hover { background:rgba(245,158,11,0.25);border-color:rgba(245,158,11,0.5);transform:translateY(-2px); }
-  `;
-
-  const CANVAS_SCRIPT = `
-(function() {
-  const canvas = document.getElementById('nn-canvas-run');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-  const h = canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  const nodes = [];
-  const colors = ['#f59e0b','#ef4444','#10b981','#f97316'];
-  for (let i = 0; i < 40; i++) {
-    nodes.push({
-      x: Math.random() * canvas.offsetWidth,
-      y: Math.random() * canvas.offsetHeight,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
-      color: colors[Math.floor(Math.random() * colors.length)]
-    });
+  function agentColor(name: string): string {
+    const n = name.toLowerCase();
+    if (n.includes("ava"))  return "#7c3aed";
+    if (n.includes("rex"))  return "#0891b2";
+    if (n.includes("sage")) return "#059669";
+    if (n.includes("opus")) return "#f59e0b";
+    return "#8b5cf6";
   }
-  function animate() {
-    ctx.fillStyle = 'rgba(10,14,39,0.05)';
-    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-    nodes.forEach(n => {
-      n.x += n.vx; n.y += n.vy;
-      if (n.x < 0 || n.x > canvas.offsetWidth) n.vx *= -1;
-      if (n.y < 0 || n.y > canvas.offsetHeight) n.vy *= -1;
-    });
-    nodes.forEach((n, i) => {
-      for (let j = i+1; j < nodes.length; j++) {
-        const o = nodes[j];
-        const dx = n.x-o.x, dy = n.y-o.y;
-        const d = Math.sqrt(dx*dx+dy*dy);
-        if (d < 150) {
-          ctx.beginPath();
-          ctx.strokeStyle = n.color + Math.floor((1-d/150)*0.3*255).toString(16).padStart(2,'0');
-          ctx.lineWidth = 0.5;
-          ctx.moveTo(n.x,n.y); ctx.lineTo(o.x,o.y); ctx.stroke();
+
+  const feedEvents: FeedItem[] = [
+    ...recentRuns.map(r => ({
+      id: r.id,
+      type: "run" as const,
+      agentName: r.agent.name.split("—")[0].trim(),
+      agentColor: agentColor(r.agent.name),
+      description: r.input.length > 90 ? r.input.slice(0, 87) + "…" : r.input,
+      status: (r.status === "success" ? "success" : r.status === "error" ? "error" : "running") as FeedItem["status"],
+      ts: r.createdAt.getTime(),
+      costCents: r.costCents,
+    })),
+    ...recentSocial.map(p => {
+      const platforms = (() => { try { return (JSON.parse(p.platforms) as string[]).join(", "); } catch { return ""; } })();
+      const st: FeedItem["status"] = p.status === "posted" ? "posted" : p.status === "partial" ? "partial" : p.status === "error" ? "error" : "running";
+      return {
+        id: p.id,
+        type: "social" as const,
+        agentName: "Social",
+        agentColor: "#ec4899",
+        description: p.topic.length > 90 ? p.topic.slice(0, 87) + "…" : p.topic,
+        status: st,
+        ts: (p.postedAt ?? p.createdAt).getTime(),
+        platforms,
+      };
+    }),
+  ].sort((a, b) => b.ts - a.ts).slice(0, 14);
+
+  const limits       = PLAN_LIMITS[toPlanKey(user.plan)];
+  const displayName  = user.name || user.email.split("@")[0];
+  const initials     = displayName[0].toUpperCase();
+  const totalCost    = totals._sum.costCents ?? 0;
+  const successCount = totals._count ?? 0;
+  const seed         = user.id.charCodeAt(0) + user.id.charCodeAt(1);
+  const isPro        = user.plan !== "FREE";
+  const runsUsed     = user.runsUsedThisPeriod ?? 0;
+  const effectiveRunLimit = limits.monthlyRuns + (user.referralBonusRuns ?? 0);
+  const pct          = Math.min((runsUsed / effectiveRunLimit) * 100, 100);
+  const hour         = new Date().getHours();
+  const greeting     = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const agentStubs   = agents.map(a => ({ id: a.id, name: a.name, role: a.role }));
+
+  const STAT_CARDS = [
+    { label: "AI Employees",     value: agentCount,                  suffix: `/ ${limits.agents}`,       icon: Bot,          color: "#7c3aed", spark: genSparkline(seed,      10, "up"),   trend: "up"   as const, trendLabel: "active now",   href: "/dashboard/agents"  },
+    { label: "Successful Runs",  value: successCount,                suffix: "",                          icon: CheckCircle2, color: "#10b981", spark: genSparkline(seed + 3,  10, "up"),   trend: "up"   as const, trendLabel: "all time",     href: "/dashboard/runs"    },
+    { label: "Runs This Period", value: runsUsed,                    suffix: `/ ${effectiveRunLimit}`,   icon: Activity,     color: "#f59e0b", spark: genSparkline(seed + 7,  10, "flat"), trend: "flat" as const, trendLabel: "this period",  href: "/dashboard/runs"    },
+    { label: "Est. Spend",       value: Math.round(totalCost / 100), suffix: "",   prefix: "$",          icon: TrendingUp,   color: "#ec4899", spark: genSparkline(seed + 11, 10, "up"),   trend: "up"   as const, trendLabel: "lifetime",     href: "/dashboard/billing" },
+  ];
+
+  return (
+    <>
+      <CommandPalette agents={agentStubs} />
+
+      <style>{`
+        @keyframes liveDot {
+          0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(16,185,129,0.5); }
+          50% { opacity:0.7; box-shadow:0 0 0 6px rgba(16,185,129,0); }
         }
-      }
-    });
-    nodes.forEach(n => {
-      ctx.fillStyle = n.color;
-      ctx.shadowColor = n.color;
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(n.x,n.y,2.5,0,Math.PI*2);
-      ctx.fill();
-    });
-    requestAnimationFrame(animate);
-  }
-  animate();
-})();
-  `;
+        @keyframes dataIn {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatY {
+          0%,100% { transform: translateY(0px); }
+          50%     { transform: translateY(-5px); }
+        }
+        @keyframes glitch {
+          0%,94%,100% { text-shadow: none; }
+          95% { text-shadow: 2px 0 #ec4899, -2px 0 #00d4ff; }
+          97% { text-shadow: -2px 0 #ec4899, 2px 0 #00d4ff; }
+        }
+        @keyframes pulse-ring {
+          0%   { transform: scale(1);   opacity: 0.6; }
+          100% { transform: scale(1.8); opacity: 0; }
+        }
+        @keyframes statusIn {
+          from { opacity:0; transform:translateX(-8px); }
+          to   { opacity:1; transform:translateX(0); }
+        }
+        @keyframes shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes barGrow {
+          from { width: 0; }
+          to   { width: ${pct}%; }
+        }
 
-  const PARALLAX_SCRIPT = `
-document.addEventListener('mousemove', function(e) {
-  const cards = document.querySelectorAll('.holo3d-run');
-  cards.forEach(card => {
-    const rect = card.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    card.style.transform = \`perspective(1000px) rotateX(\${y*5}deg) rotateY(\${-x*5}deg)\`;
-  });
-});
-  `;
+        .stat-card {
+          animation: dataIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+        }
+        .stat-card:nth-child(1) { animation-delay: 0.04s; }
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.16s; }
+        .stat-card:nth-child(4) { animation-delay: 0.22s; }
 
-  return (
-    <div style={{ minHeight: "100vh", position: "relative" }}>
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        .agent-row {
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 16px;
+          border-bottom: 1px solid rgba(255,255,255,0.03);
+          text-decoration: none;
+          transition: background 0.15s ease;
+          position: relative;
+        }
+        .agent-row:hover { background: rgba(124,58,237,0.06); }
+        .agent-row:hover .row-chevron { color: #a78bfa; transform: translateX(3px); }
+        .row-chevron { transition: all 0.2s ease; color: #3f3f46; }
 
-      {/* Aurora Neural Background */}
-      <div className="aurora-run">
-        <canvas id="nn-canvas-run"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.4 }} />
-        <div className="aurora-blob-run blob-1-run" />
-        <div className="aurora-blob-run blob-2-run" />
-        <div className="aurora-blob-run blob-3-run" />
-        <div className="aurora-blob-run blob-4-run" />
-      </div>
+        .quick-tile:hover {
+          background: rgba(255,255,255,0.04) !important;
+          border-color: rgba(255,255,255,0.1) !important;
+          transform: translateY(-1px);
+        }
+        .quick-tile { transition: all 0.18s ease; }
 
-      <div className="container-run">
-        {/* Hero Banner */}
-        <div className="hero-banner-run holo3d-run">
-          <div className="hero-icon-run">
-            <div style={{
-              position: "absolute", width: "80px", height: "80px", borderRadius: "50%",
-              background: "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(239,68,68,0.2))",
-              border: "1px solid rgba(245,158,11,0.4)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              animation: "spin-ang 8s linear infinite",
-              backgroundImage: "conic-gradient(from var(--ang),#f59e0b,#ef4444,#f97316,#f59e0b)",
-              backgroundClip: "padding-box",
-            } as any}>
-              <div style={{
-                position: "absolute", inset: "1px", borderRadius: "50%",
-                background: "linear-gradient(135deg,rgba(10,14,39,0.9),rgba(20,24,50,0.9))",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Activity size={36} style={{ color: "#f59e0b" }} />
-              </div>
-            </div>
-          </div>
-          <div className="hero-content-run">
-            <h1 className="hero-title-run">
-              <span style={{ position: "relative" }}>
-                <span style={{ color: "#ff0033", filter: "blur(0.5px)", transform: "translateX(-0.5px)", position: "absolute" }}>
-                  Execution Chronicle
-                </span>
-                <span style={{ color: "#00ffee", filter: "blur(0.5px)", transform: "translateX(0.5px)", position: "absolute" }}>
-                  Execution Chronicle
-                </span>
-                <span style={{ color: "inherit", position: "relative" }}>Execution Chronicle</span>
-              </span>
-            </h1>
-            <p className="hero-subtitle-run">Real-time agent execution telemetry</p>
-          </div>
-        </div>
+        .hire-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 0 36px rgba(124,58,237,0.65) !important;
+        }
+        .hire-btn { transition: all 0.2s ease; }
 
-        {/* Stats Grid */}
-        <div className="stats-grid-run">
-          {[
-            { label: "Total Runs", value: runs.length, color: "#f59e0b", seed: 1 },
-            { label: "Completed", value: completedRuns, color: "#10b981", seed: 2 },
-            { label: "Failed", value: failedRuns, color: "#ef4444", seed: 3 },
-            { label: "Success Rate", value: `${successRate}%`, color: "#f97316", seed: 4 },
-          ].map((stat) => (
-            <div key={stat.label} className="stat-card-run holo3d-run">
-              <div className="stat-label-run">{stat.label}</div>
-              <div className="stat-value-run" style={{ color: stat.color }}>
-                <ChromaticNumber value={stat.value} />
-              </div>
-              <div className="stat-content-run">
-                <div className="circuit-run">
-                  <CircuitTrace color={stat.color} />
+        .nav-chip:hover {
+          color: #fff !important;
+          background: rgba(124,58,237,0.12) !important;
+          border-color: rgba(124,58,237,0.3) !important;
+        }
+        .nav-chip { transition: all 0.18s ease; }
+
+        .usage-bar {
+          height: 4px; border-radius: 999px;
+          background: linear-gradient(90deg, #7c3aed, #ec4899);
+          animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) both 0.6s;
+        }
+      `}</style>
+
+      <div className="relative min-h-screen">
+        <Aurora />
+        <ParticleCanvas />
+
+        <div className="relative z-10" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+
+          {/* ══════════════════════════════════
+              HEADER
+          ══════════════════════════════════ */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: 16, flexWrap: "wrap", animation: "statusIn 0.5s ease both",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {/* Avatar */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <div style={{
+                  position: "absolute", inset: -8, borderRadius: "50%",
+                  border: "1px solid rgba(124,58,237,0.25)",
+                  animation: "pulse-ring 3s ease-out infinite",
+                }} />
+                <div style={{
+                  position: "absolute", inset: -16, borderRadius: "50%",
+                  border: "1px solid rgba(124,58,237,0.1)",
+                  animation: "pulse-ring 3s ease-out infinite 1s",
+                }} />
+                <div style={{
+                  width: 52, height: 52, borderRadius: 16,
+                  background: "linear-gradient(135deg,#7c3aed,#ec4899)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20, fontWeight: 900, color: "#fff",
+                  boxShadow: "0 0 0 2px rgba(124,58,237,0.4), 0 0 40px rgba(124,58,237,0.35)",
+                  position: "relative", zIndex: 1,
+                  animation: "glitch 8s ease-in-out infinite",
+                }}>
+                  {initials}
                 </div>
-                <div className="miniwave-run">
-                  <MiniWave color={stat.color} seed={stat.seed} />
-                </div>
+                <div style={{
+                  position: "absolute", bottom: -2, right: -2, zIndex: 2,
+                  width: 13, height: 13, borderRadius: "50%",
+                  background: "#10b981", border: "2px solid #000",
+                  boxShadow: "0 0 8px rgba(16,185,129,0.8)",
+                  animation: "liveDot 2s ease infinite",
+                }} />
               </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Runs List */}
-        <div style={{ marginBottom: "3rem" }}>
-          <div className="section-title-run">
-            <Activity size={20} style={{ color: "#f59e0b" }} />
-            Recent Executions
-          </div>
-
-          {runs.length === 0 ? (
-            <div style={{
-              textAlign: "center", padding: "4rem", color: "#a0aec0",
-              background: "rgba(245,158,11,0.05)", borderRadius: "12px",
-              border: "1px solid rgba(245,158,11,0.15)",
-            }}>
-              <Activity size={48} style={{ color: "#f59e0b", margin: "0 auto 1rem", opacity: 0.5 }} />
-              <p>No executions yet. Run an agent to see results here.</p>
-            </div>
-          ) : (
-            <div>
-              {runs.map((run, idx) => (
-                <div key={run.id} className="run-row-run">
-                  <div className="run-inner-run">
-                    <span className="run-number-run">#{String(idx + 1).padStart(3, "0")}</span>
-                    <span className="run-agent-run">
-                      {(run as any).agent?.name || "Unknown Agent"}
-                    </span>
-                    <StatusPulse status={run.status} />
-                    <span className="run-time-run">
-                      {new Date(run.createdAt).toLocaleDateString("en-US", {
-                        month: "short", day: "numeric",
-                        hour: "2-digit", minute: "2-digit",
-                      })}
-                    </span>
-                    {(run as any).costCents != null && (run as any).costCents > 0 && (
-                      <span className="run-cost-run">
-                        ${((run as any).costCents / 100).toFixed(4)}
-                      </span>
-                    )}
-                    {(run as any).output && (
-                      <span className="run-output-run">
-                        {(run as any).output.substring(0, 80)}...
-                      </span>
-                    )}
+              <div>
+                <p style={{ fontSize: 11, color: "#52525b", fontWeight: 600, letterSpacing: "0.05em", marginBottom: 3, textTransform: "uppercase" }}>
+                  {greeting}
+                </p>
+                <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: "-0.8px", lineHeight: 1, marginBottom: 6 }}>
+                  <Typewriter
+                    text={displayName}
+                    speed={60}
+                    style={{
+                      background: "linear-gradient(135deg, #ffffff 0%, #c4b5fd 40%, #818cf8 70%, #e879f9 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  />
+                </h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "3px 10px", borderRadius: 999,
+                    background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)",
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", animation: "liveDot 1.8s ease infinite", flexShrink: 0 }} />
+                    <span style={{ fontSize: 9, color: "#10b981", fontWeight: 800, letterSpacing: "0.1em" }}>SYSTEMS ONLINE</span>
+                  </div>
+                  <div style={{
+                    padding: "3px 10px", borderRadius: 999,
+                    background: "rgba(124,58,237,0.07)", border: "1px solid rgba(124,58,237,0.18)",
+                    fontSize: 9, color: "#a78bfa", fontWeight: 700, letterSpacing: "0.08em",
+                  }}>
+                    {agentCount} AGENT{agentCount !== 1 ? "S" : ""} ACTIVE
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Navigation */}
-        <div className="nav-strip-run">
-          <Link href="/dashboard" className="nav-link-run">
-            <BarChart3 size={16} />Overview
-          </Link>
-          <Link href="/dashboard/agents" className="nav-link-run">
-            <Zap size={16} />Agents
-          </Link>
-          <Link href="/dashboard/campaigns" className="nav-link-run">
-            <TrendingUp size={16} />Campaigns
-          </Link>
-          <Link href="/dashboard/social" className="nav-link-run">
-            <Target size={16} />Social
-          </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="hidden sm:flex" style={{
+                alignItems: "center", gap: 6,
+                padding: "8px 12px", borderRadius: 10,
+                background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)",
+              }}>
+                <kbd style={{ fontSize: 10, color: "#52525b", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 4, padding: "1px 6px" }}>⌘K</kbd>
+                <span style={{ fontSize: 11, color: "#3f3f46" }}>Command</span>
+              </div>
+              <Link href="/dashboard/agents" className="hire-btn" style={{
+                display: "flex", alignItems: "center", gap: 7,
+                background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
+                color: "#fff", borderRadius: 12, padding: "10px 20px",
+                fontSize: 12, fontWeight: 700, letterSpacing: "0.01em",
+                boxShadow: "0 0 28px rgba(124,58,237,0.4)",
+                textDecoration: "none", position: "relative", overflow: "hidden",
+              }}>
+                <Plus size={13} />
+                Hire AI Employee
+              </Link>
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════
+              STAT CARDS — 4 across
+          ══════════════════════════════════ */}
+          <div className="dash-stat-grid">
+            {STAT_CARDS.map((s, i) => {
+              const TI = s.trend === "up" ? TrendingUp : s.trend === "down" ? TrendingDown : Minus;
+              const tc = s.trend === "up" ? "#10b981" : s.trend === "down" ? "#ef4444" : "#71717a";
+              return (
+                <div key={s.label} className="stat-card">
+                  <Link href={s.href} style={{
+                    display: "block", textDecoration: "none",
+                    borderRadius: 20, padding: "22px 22px 18px",
+                    position: "relative", overflow: "hidden",
+                    background: "rgba(255,255,255,0.028)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    borderLeft: `3px solid ${s.color}`,
+                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 transparent`,
+                    transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+                  }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 30px ${s.color}18`;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.boxShadow = `inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 0 transparent`;
+                    }}
+                  >
+                    {/* Corner glow */}
+                    <div style={{
+                      position: "absolute", top: -40, right: -40, width: 120, height: 120,
+                      borderRadius: "50%",
+                      background: `radial-gradient(circle, ${s.color}12 0%, transparent 70%)`,
+                      pointerEvents: "none",
+                    }} />
+
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                      {/* Icon + label row */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.12em" }}>{s.label}</span>
+                        <div style={{
+                          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                          background: `${s.color}14`, border: `1px solid ${s.color}22`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <s.icon size={15} color={s.color} />
+                        </div>
+                      </div>
+
+                      {/* Big number */}
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 14 }}>
+                        {s.prefix && <span style={{ fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{s.prefix}</span>}
+                        <span style={{ fontSize: 48, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-2px" }}>
+                          <AnimatedCounter value={s.value} />
+                        </span>
+                        {s.suffix && <span style={{ fontSize: 13, color: "#3f3f46", fontWeight: 500 }}>{s.suffix}</span>}
+                      </div>
+
+                      {/* Trend + sparkline */}
+                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 4,
+                          fontSize: 10, color: tc, fontWeight: 700,
+                          background: `${tc}10`, border: `1px solid ${tc}20`,
+                          borderRadius: 999, padding: "2px 8px",
+                        }}>
+                          <TI size={10} color={tc} />
+                          {s.trendLabel}
+                        </div>
+                        <Sparkline values={s.spark} color={s.color} width={80} height={28} />
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ══════════════════════════════════
+              MAIN GRID — FEED + SIDEBAR
+          ══════════════════════════════════ */}
+          <div className="dash-main-grid">
+
+            {/* LIVE ACTIVITY FEED */}
+            <div style={{
+              borderRadius: 20, overflow: "hidden",
+              background: "rgba(255,255,255,0.022)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}>
+              {/* Feed header */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "16px 20px",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                background: "rgba(0,0,0,0.15)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8,
+                    background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Activity size={13} color="#10b981" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>Live Activity</div>
+                    <div style={{ fontSize: 10, color: "#3f3f46", marginTop: 1 }}>{allCount + recentSocial.length} total events recorded</div>
+                  </div>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)",
+                    borderRadius: 999, padding: "3px 9px",
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", animation: "liveDot 1.8s ease infinite", flexShrink: 0 }} />
+                    <span style={{ fontSize: 9, fontWeight: 800, color: "#10b981", letterSpacing: "0.1em" }}>LIVE</span>
+                  </div>
+                </div>
+                <Link href="/dashboard/runs" style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  fontSize: 11, color: "#52525b", textDecoration: "none",
+                  padding: "5px 12px", borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "rgba(255,255,255,0.02)",
+                  transition: "all 0.15s ease",
+                }}>
+                  View all <ChevronRight size={11} />
+                </Link>
+              </div>
+
+              <LiveFeed initialEvents={feedEvents} />
+            </div>
+
+            {/* SIDEBAR */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+              {/* Quick Actions */}
+              <div style={{
+                borderRadius: 20, overflow: "hidden",
+                background: "rgba(255,255,255,0.022)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 7,
+                  padding: "12px 16px",
+                  borderBottom: "1px solid rgba(255,255,255,0.05)",
+                  background: "rgba(0,0,0,0.15)",
+                }}>
+                  <Sparkles size={11} color="#a78bfa" />
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#d4d4d8", textTransform: "uppercase", letterSpacing: "0.1em" }}>Quick Access</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: 10 }}>
+                  {[
+                    { href: "/dashboard/agents",    icon: Bot,       label: "AI Employees", color: "#7c3aed" },
+                    { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns",    color: "#ec4899" },
+                    { href: "/dashboard/social",    icon: Share2,    label: "Social Media", color: "#3b82f6" },
+                    { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics",    color: "#f59e0b" },
+                  ].map(q => (
+                    <Link key={q.href} href={q.href} className="quick-tile" style={{
+                      display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8,
+                      borderRadius: 12, padding: "13px 12px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      textDecoration: "none",
+                    }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 9,
+                        background: `${q.color}12`, border: `1px solid ${q.color}20`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: `0 0 12px ${q.color}14`,
+                      }}>
+                        <q.icon size={14} color={q.color} />
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#d4d4d8" }}>{q.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Workforce */}
+              <div style={{
+                borderRadius: 20, overflow: "hidden",
+                background: "rgba(255,255,255,0.022)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 16px",
+                  borderBottom: "1px solid rgba(255,255,255,0.05)",
+                  background: "rgba(0,0,0,0.15)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <Bot size={11} color="#a78bfa" />
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#d4d4d8", textTransform: "uppercase", letterSpacing: "0.1em" }}>Workforce</span>
+                  </div>
+                  <Link href="/dashboard/agents" style={{ fontSize: 10, color: "#52525b", textDecoration: "none" }}>View all</Link>
+                </div>
+
+                {agents.length === 0 ? (
+                  <div style={{ padding: "28px 16px", textAlign: "center" }}>
+                    <p style={{ fontSize: 12, color: "#52525b", marginBottom: 10 }}>No AI employees yet.</p>
+                    <Link href="/dashboard/agents" style={{ fontSize: 12, color: "#a78bfa", textDecoration: "none", fontWeight: 700 }}>+ Hire your first</Link>
+                  </div>
+                ) : (
+                  agents.slice(0, 4).map((a, i) => (
+                    <Link key={a.id} href={`/dashboard/agents/${a.id}`} className="agent-row">
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                        background: `linear-gradient(135deg, ${COLORS[i % COLORS.length][0]}, ${COLORS[i % COLORS.length][1]})`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, fontWeight: 900, color: "#fff",
+                        boxShadow: `0 0 14px ${COLORS[i % COLORS.length][0]}50`,
+                      }}>
+                        {a.name[0].toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#e4e4e7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name.split("—")[0].trim()}</div>
+                        <div style={{ fontSize: 10, color: "#52525b", marginTop: 1 }}>{a.role}</div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                        <span style={{
+                          width: 6, height: 6, borderRadius: "50%",
+                          background: "#10b981", boxShadow: "0 0 6px rgba(16,185,129,0.7)",
+                          animation: "liveDot 2.2s ease infinite",
+                        }} />
+                        <ChevronRight size={12} className="row-chevron" />
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+
+              {/* Usage */}
+              <div style={{
+                borderRadius: 20, overflow: "hidden",
+                background: "rgba(255,255,255,0.022)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                padding: "14px 16px 16px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <Gauge size={11} color="#71717a" />
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#d4d4d8", textTransform: "uppercase", letterSpacing: "0.1em" }}>Usage</span>
+                  </div>
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "2px 9px",
+                    letterSpacing: "0.06em",
+                    color: isPro ? "#a78bfa" : "#71717a",
+                    background: isPro ? "rgba(124,58,237,0.12)" : "rgba(113,113,122,0.1)",
+                    border: `1px solid ${isPro ? "rgba(124,58,237,0.2)" : "rgba(113,113,122,0.15)"}`,
+                  }}>
+                    {user.plan}
+                  </span>
+                </div>
+
+                {/* Usage numbers */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 8 }}>
+                  <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-1px" }}>{runsUsed}</span>
+                  <span style={{ fontSize: 13, color: "#3f3f46" }}>/ {effectiveRunLimit} runs</span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,255,0.06)", marginBottom: 12, overflow: "hidden" }}>
+                  <div className="usage-bar" style={{ width: `${pct}%` }} />
+                </div>
+
+                <div style={{ fontSize: 10, color: "#52525b", marginBottom: isPro ? 0 : 12 }}>
+                  {Math.round(pct)}% of monthly limit used
+                </div>
+
+                {!isPro && (
+                  <Link href="/dashboard/billing" style={{
+                    display: "flex", width: "100%", alignItems: "center", justifyContent: "center", gap: 6,
+                    borderRadius: 10, padding: "9px 0",
+                    background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
+                    color: "#fff", fontSize: 11, fontWeight: 700,
+                    boxShadow: "0 0 20px rgba(124,58,237,0.3)",
+                    textDecoration: "none",
+                    marginTop: 4,
+                  }}>
+                    <Sparkles size={11} />
+                    Upgrade to Pro
+                  </Link>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════
+              BOTTOM NAV STRIP
+          ══════════════════════════════════ */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingBottom: 8 }}>
+            {[
+              { href: "/dashboard/runs",      icon: ListChecks, label: "All Runs" },
+              { href: "/dashboard/analytics", icon: BarChart3,  label: "Analytics" },
+              { href: "/dashboard/campaigns", icon: Megaphone,  label: "Campaigns" },
+              { href: "/dashboard/social",    icon: Share2,     label: "Social" },
+              { href: "/dashboard/billing",   icon: CreditCard, label: "Billing" },
+              { href: "/dashboard/settings",  icon: Settings,   label: "Settings" },
+            ].map(item => (
+              <Link key={item.href} href={item.href} className="nav-chip" style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "6px 12px", borderRadius: 9,
+                background: "rgba(255,255,255,0.025)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                fontSize: 11, color: "#71717a", textDecoration: "none",
+              }}>
+                <item.icon size={11} />
+                {item.label}
+              </Link>
+            ))}
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#3f3f46" }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#10b981", animation: "liveDot 2s ease infinite" }} />
+              All systems operational
+            </div>
+          </div>
+
         </div>
       </div>
-
-      <script dangerouslySetInnerHTML={{ __html: CANVAS_SCRIPT }} />
-      <script dangerouslySetInnerHTML={{ __html: PARALLAX_SCRIPT }} />
-    </div>
+    </>
   );
 }
+
+const COLORS = [
+  ["#7c3aed","#6d28d9"],
+  ["#ec4899","#db2777"],
+  ["#3b82f6","#2563eb"],
+  ["#10b981","#059669"],
+];
