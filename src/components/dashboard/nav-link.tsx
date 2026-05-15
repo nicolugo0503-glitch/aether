@@ -17,11 +17,13 @@ export function NavLink({
   icon,
   label,
   exact = false,
+  badge,
 }: {
   href: string;
   icon: string;
   label: string;
   exact?: boolean;
+  badge?: number;
 }) {
   const Icon = ICON_MAP[icon] ?? LayoutDashboard;
   const path = usePathname();
@@ -55,9 +57,25 @@ export function NavLink({
       />
 
       {/* label */}
-      <span className="transition-transform duration-150 group-hover:translate-x-0.5">
+      <span className="transition-transform duration-150 group-hover:translate-x-0.5 flex-1">
         {label}
       </span>
+
+      {/* badge */}
+      {badge != null && badge > 0 && (
+        <span
+          className="shrink-0 ml-auto text-[10px] font-black leading-none px-1.5 py-0.5 rounded-full"
+          style={{
+            background: "linear-gradient(135deg, #7c3aed, #ec4899)",
+            color: "#fff",
+            minWidth: 18,
+            textAlign: "center",
+            boxShadow: "0 0 8px rgba(124,58,237,0.5)",
+          }}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
 
       {/* hover glow */}
       {!isActive && (
