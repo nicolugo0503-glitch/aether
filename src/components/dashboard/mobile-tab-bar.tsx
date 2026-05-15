@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, ListChecks, Share2, Menu, X,
   Megaphone, BarChart3, Users, Gift, CreditCard, Settings,
-  Star, Send, ChevronRight, HelpCircle, Radar, Inbox,
+  Star, Send, ChevronRight, HelpCircle, Radar,
 } from "lucide-react";
 
 const PRIMARY_TABS = [
@@ -17,7 +17,6 @@ const PRIMARY_TABS = [
 
 const MORE_ITEMS = [
   { href: "/dashboard/campaigns",   label: "Campaigns",   desc: "Email & social campaigns",        icon: Megaphone,  color: "#f59e0b", bg: "rgba(245,158,11,0.15)"  },
-  { href: "/dashboard/inbox",       label: "Smart Inbox", desc: "AI-classified reply triage",      icon: Inbox,      color: "#a78bfa", bg: "rgba(124,58,237,0.15)"  },
   { href: "/dashboard/competitors", label: "Competitors", desc: "AI watches competitor changes",   icon: Radar,      color: "#a78bfa", bg: "rgba(167,139,250,0.15)" },
   { href: "/dashboard/analytics",   label: "Analytics",   desc: "Performance & ROI metrics",       icon: BarChart3,  color: "#22c55e", bg: "rgba(34,197,94,0.15)"   },
   { href: "/dashboard/team",       label: "Team",       desc: "Members & permissions",     icon: Users,      color: "#3b82f6", bg: "rgba(59,130,246,0.15)"  },

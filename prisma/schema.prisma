@@ -85,13 +85,6 @@ model User {
   workflowRuns WorkflowRun[]
 
   competitors Competitor[]
-
-  // Smart Inbox — inbound reply webhook
-  inboxWebhookToken String?  @unique          // bearer secret for /api/inbox/inbound
-  inboxNotifyHot    Boolean  @default(true)   // email user when a HOT reply arrives
-  inboxLastSeenAt   DateTime?                  // for unread badge
-
-  emailReplies EmailReply[]
 }
 
 model SocialPost {
@@ -448,75 +441,4 @@ model CompetitorChange {
 
   @@index([competitorId, detectedAt])
   @@index([userId, read])
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Smart Inbox — AI-Powered Reply Intelligence
-//
-// Inbound email replies arrive via webhook (e.g. Resend Inbound, or a
-// custom MX hook). Each reply is classified by GPT-4o-mini into a clean
-// intent (HOT / INTERESTED / OBJECTION / NOT_NOW / UNSUBSCRIBE /
-// OUT_OF_OFFICE / WRONG_PERSON / QUESTION / SPAM), scored 1-100, and
-// a draft response is pre-generated.
-//
-// Closes the loop on outbound cold email: instead of every reply
-// landing back in the user's noisy personal inbox, Aether surfaces
-// the hot ones, summarizes the rest, and offers one-click follow-ups.
-// ─────────────────────────────────────────────────────────────────────
-model EmailReply {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Optional link back to the campaign that sent the original outreach
-  campaignId String?
-
-  // The lead who replied
-  fromEmail  String
-  fromName   String?
-  toEmail    String?                                  // the address that received it
-  subject    String?
-
-  // Reply content (truncated to ~16k chars to keep DB lean)
-  bodyText   String   @default("")
-  bodyHtml   String?
-
-  // Threading
-  messageId   String?                                  // RFC822 Message-ID of this reply
-  inReplyTo   String?                                  // Message-ID of the email we sent
-  threadId    String?                                  // optional provider thread id
-
-  // AI classification — see src/lib/reply-intelligence.ts
-  intent           String   @default("UNCLASSIFIED")   // HOT | INTERESTED | OBJECTION | NOT_NOW | UNSUBSCRIBE | OUT_OF_OFFICE | WRONG_PERSON | QUESTION | SPAM | UNCLASSIFIED
-  sentiment        String   @default("neutral")         // positive | neutral | negative
-  score            Int      @default(50)                // 1-100, "how worth your time" composite
-  urgency          String   @default("normal")          // low | normal | high
-  summary          String   @default("")                // 1-2 sentence AI summary
-  suggestedAction  String   @default("")                // e.g. "Send Calendly link" / "Send pricing" / "Move to nurture"
-  draftReply       String   @default("")                // AI-generated reply the user can edit & send
-  tags             String   @default("[]")              // JSON array of short tags
-
-  // User state
-  status     String    @default("new")                  // "new" | "read" | "actioned" | "dismissed"
-  pinned     Boolean   @default(false)
-  hot        Boolean   @default(false)                  // shortcut for "intent=HOT or score>=80"
-
-  // Replied / actioned tracking
-  repliedAt   DateTime?
-  actionedAt  DateTime?
-  notifiedAt  DateTime?                                  // when we emailed the user about this
-
-  // AI cost
-  tokensIn   Int @default(0)
-  tokensOut  Int @default(0)
-  costCents  Int @default(0)
-
-  receivedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([userId, receivedAt])
-  @@index([userId, status])
-  @@index([userId, hot])
-  @@index([campaignId])
 }
