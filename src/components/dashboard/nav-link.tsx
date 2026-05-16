@@ -1,15 +1,15 @@
-"use client";
+h"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, ListChecks, CreditCard,
   Settings, Megaphone, Share2, MessageSquare, Gift, BarChart3,
-  Users, Workflow, Radar, Inbox, LucideIcon,
+  Users, Workflow, Radar, Inbox, HelpCircle, LucideIcon,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Bot, ListChecks, CreditCard, Settings, Megaphone, Share2, MessageSquare, Gift, BarChart3,
-  Users, Workflow, Radar, Inbox,
+  Users, Workflow, Radar, Inbox, HelpCircle,
 };
 
 export function NavLink({
