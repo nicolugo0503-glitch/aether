@@ -42,6 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/referrals",   label: "Referrals",    icon: "Gift" },
     { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
     { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
+    { href: "/dashboard/help",        label: "Help",         icon: "HelpCircle" },
   ];
 
   const initials = (user.name || user.email)[0].toUpperCase();
