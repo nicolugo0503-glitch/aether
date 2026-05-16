@@ -97,9 +97,9 @@ export default async function SettingsPage({
   const displayName = user.name || user.email.split("@")[0];
   const initials    = displayName[0].toUpperCase();
 
-  const ACCENT  = "#6366f1";
-  const ACCENT2 = "#818cf8";
-  const ACCENT3 = "#a5b4fc";
+  const ACCENT  = "#7c3aed";
+  const ACCENT2 = "#a78bfa";
+  const ACCENT3 = "#c4b5fd";
 
   return (
     <div style={{ maxWidth: 700, position: "relative" }}>
