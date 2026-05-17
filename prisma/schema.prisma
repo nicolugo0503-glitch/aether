@@ -92,6 +92,11 @@ model User {
   inboxLastSeenAt   DateTime?                  // for unread badge
 
   emailReplies EmailReply[]
+
+  // Revenue Attribution — connects AI work to closed-won deals
+  attributionWebhookToken String?  @unique     // bearer secret for /api/deals/webhook
+  deals                   Deal[]
+  attributionEvents       AttributionEvent[]
 }
 
 model SocialPost {
@@ -519,4 +524,103 @@ model EmailReply {
   @@index([userId, status])
   @@index([userId, hot])
   @@index([campaignId])
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Revenue Attribution & Sales Pipeline
+//
+// The holy grail of an AI-workforce product: prove that the AI made
+// the user money. Every meaningful action by an Aether agent — a sent
+// cold email, a generated post, a hot reply detected — emits an
+// AttributionEvent that can later be linked to a Deal. Stripe + Calendly
+// webhooks can mark deals won/lost without the user lifting a finger.
+//
+// Pipeline stages (string-typed for SQLite-safe portability):
+//   "NEW" | "CONTACTED" | "QUALIFIED" | "DEMO" | "PROPOSAL" | "WON" | "LOST"
+// ─────────────────────────────────────────────────────────────────────
+model Deal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Lead identity
+  leadEmail   String
+  leadName    String?
+  company     String?
+  title       String?
+  linkedinUrl String?
+
+  // Pipeline
+  stage       String   @default("NEW")
+
+  // Money (cents to avoid float drift)
+  valueCents       Int     @default(0)
+  currency         String  @default("USD")
+  probability      Int     @default(20)
+  expectedRevenue  Int     @default(0)
+
+  // Attribution — which AI work created this deal
+  sourceAgentId    String?
+  sourceCampaignId String?
+  sourceRunId      String?
+  sourceReplyId    String?
+  sourceType       String  @default("manual")   // "manual" | "hot_reply" | "webhook" | "social" | "workflow"
+
+  notes        String   @default("")
+  positionRank Int      @default(0)
+
+  // Lifecycle
+  contactedAt     DateTime?
+  qualifiedAt     DateTime?
+  demoBookedAt    DateTime?
+  proposalAt      DateTime?
+  expectedCloseAt DateTime?
+  closedAt        DateTime?
+  closeReason     String?
+
+  // Aggregates (denormalized)
+  eventCount   Int       @default(0)
+  lastEventAt  DateTime?
+  daysInStage  Int       @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events AttributionEvent[]
+
+  @@index([userId, stage])
+  @@index([userId, updatedAt])
+  @@index([userId, leadEmail])
+  @@index([sourceAgentId])
+  @@index([sourceCampaignId])
+}
+
+// Every meaningful interaction with a lead/deal is logged here.
+model AttributionEvent {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dealId   String?
+  deal     Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  type     String
+  title    String
+  detail   String   @default("")
+
+  agentId       String?
+  runId         String?
+  campaignId    String?
+  replyId       String?
+  workflowRunId String?
+
+  valueCents Int     @default(0)
+  source     String  @default("internal")   // "internal" | "calendly" | "stripe" | "zapier" | "custom"
+  metadata   String  @default("{}")
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([dealId, createdAt])
+  @@index([userId, type])
 }
