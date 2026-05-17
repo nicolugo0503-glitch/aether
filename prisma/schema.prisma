@@ -97,6 +97,13 @@ model User {
   attributionWebhookToken String?  @unique     // bearer secret for /api/deals/webhook
   deals                   Deal[]
   attributionEvents       AttributionEvent[]
+
+  // AI Predictive Churn Detection — latest risk snapshot for fast list rendering
+  churnRiskScore     Int?                       // 0-100 (higher = more likely to churn)
+  churnRiskTier      String?                    // "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "HEALTHY"
+  churnPredictedAt   DateTime?                  // when latest snapshot was generated
+
+  churnPredictions   ChurnPrediction[]
 }
 
 model SocialPost {
@@ -623,4 +630,63 @@ model AttributionEvent {
   @@index([userId, createdAt])
   @@index([dealId, createdAt])
   @@index([userId, type])
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// AI Predictive Churn Detection
+//
+// Every day, a cron scans the active user base, computes behavioral
+// signals (run cadence, plan, days-since-login, setup completion, error
+// rate, declining usage trend), and asks GPT-4o-mini to:
+//   1. Score 30-day churn risk on a 0-100 scale
+//   2. Bucket into a tier (CRITICAL / HIGH / MEDIUM / LOW / HEALTHY)
+//   3. Produce a short executive reasoning
+//   4. List the strongest red-flag signals
+//   5. Recommend a specific save action ("send re-engagement email",
+//      "offer 1:1 onboarding call", "downgrade-prevention discount")
+//
+// CSMs use the resulting list to triage outreach: who to call today,
+// who to email, who is healthy and can be left alone. Turns vague
+// "are we losing them?" worries into a ranked, explainable workqueue.
+// ─────────────────────────────────────────────────────────────────────
+model ChurnPrediction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The prediction itself
+  riskScore   Int                                       // 0-100, higher = more likely to cancel
+  riskTier    String                                    // "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "HEALTHY"
+  reasoning   String                                    // 2-3 sentence executive summary
+
+  // Strongest behavioral red flags (JSON array of short strings, max 5)
+  redFlags    String   @default("[]")
+  // Positive signals that offset risk (JSON array of short strings, max 3)
+  greenFlags  String   @default("[]")
+
+  // The save play we recommend a CSM run
+  saveAction      String   @default("")                 // e.g. "Personal onboarding call", "Re-engagement email"
+  saveActionType  String   @default("none")             // "email" | "call" | "discount" | "tutorial" | "none"
+  savePriority    String   @default("normal")           // "urgent" | "high" | "normal" | "low"
+
+  // Frozen signal snapshot — useful for trend analysis later
+  signalsJson String   @default("{}")
+
+  // AI cost accounting
+  model       String   @default("gpt-4o-mini")
+  tokensIn    Int      @default(0)
+  tokensOut   Int      @default(0)
+  costCents   Int      @default(0)
+
+  // CSM workflow state — when an operator reviews/dismisses
+  reviewed     Boolean   @default(false)
+  reviewedAt   DateTime?
+  reviewerNote String    @default("")
+  outcome      String?                                  // "saved" | "churned" | "still_at_risk" | null
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([riskScore])
+  @@index([riskTier, createdAt])
 }

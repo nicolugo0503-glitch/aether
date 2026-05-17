@@ -191,6 +191,57 @@ export async function GET(req: NextRequest) {
     END $$
   `);
 
+  // -- AI Predictive Churn Detection -- User snapshot columns
+  await run("User.churnRiskScore",   `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "churnRiskScore"   INTEGER`);
+  await run("User.churnRiskTier",    `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "churnRiskTier"    TEXT`);
+  await run("User.churnPredictedAt", `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "churnPredictedAt" TIMESTAMP(3)`);
+
+  // -- AI Predictive Churn Detection -- ChurnPrediction table
+  await run("ChurnPrediction_table", `
+    CREATE TABLE IF NOT EXISTS "ChurnPrediction" (
+      "id"             TEXT NOT NULL,
+      "userId"         TEXT NOT NULL,
+      "riskScore"      INTEGER NOT NULL,
+      "riskTier"       TEXT NOT NULL,
+      "reasoning"      TEXT NOT NULL,
+      "redFlags"       TEXT NOT NULL DEFAULT '[]',
+      "greenFlags"     TEXT NOT NULL DEFAULT '[]',
+      "saveAction"     TEXT NOT NULL DEFAULT '',
+      "saveActionType" TEXT NOT NULL DEFAULT 'none',
+      "savePriority"   TEXT NOT NULL DEFAULT 'normal',
+      "signalsJson"    TEXT NOT NULL DEFAULT '{}',
+      "model"          TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+      "tokensIn"       INTEGER NOT NULL DEFAULT 0,
+      "tokensOut"      INTEGER NOT NULL DEFAULT 0,
+      "costCents"      INTEGER NOT NULL DEFAULT 0,
+      "reviewed"       BOOLEAN NOT NULL DEFAULT false,
+      "reviewedAt"     TIMESTAMP(3),
+      "reviewerNote"   TEXT NOT NULL DEFAULT '',
+      "outcome"        TEXT,
+      "createdAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "ChurnPrediction_pkey" PRIMARY KEY ("id")
+    )
+  `);
+  await run("ChurnPrediction_userId_fkey", `
+    DO $$ BEGIN
+      ALTER TABLE "ChurnPrediction" ADD CONSTRAINT "ChurnPrediction_userId_fkey"
+        FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$
+  `);
+  await run("idx_ChurnPrediction_user_created", `
+    CREATE INDEX IF NOT EXISTS "ChurnPrediction_userId_createdAt_idx"
+      ON "ChurnPrediction"("userId", "createdAt" DESC)
+  `);
+  await run("idx_ChurnPrediction_riskScore", `
+    CREATE INDEX IF NOT EXISTS "ChurnPrediction_riskScore_idx"
+      ON "ChurnPrediction"("riskScore" DESC)
+  `);
+  await run("idx_ChurnPrediction_tier_created", `
+    CREATE INDEX IF NOT EXISTS "ChurnPrediction_riskTier_createdAt_idx"
+      ON "ChurnPrediction"("riskTier", "createdAt" DESC)
+  `);
+
   const errorCount = Object.values(results).filter(v => v.startsWith("error")).length;
   return NextResponse.json({ done: true, errorCount, results });
 }
