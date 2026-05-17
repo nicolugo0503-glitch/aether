@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    // Step 1 — Generate caption + hashtags + image prompt
+    // Step 1 â Generate caption + hashtags + image prompt
     const textPrompt = `You are a social media expert. Create an engaging ${tone} social media post about: "${topic}"
 
 Return ONLY a JSON object with these fields:
@@ -33,13 +33,15 @@ Keep caption under 200 words. Make it feel authentic, not like an ad.`;
       response_format: { type: "json_object" },
     });
 
-    const result = JSON.parse(completion.choices[0].message.content || "{}");
+    let result: { caption?: string; hashtags?: string; imagePrompt?: string } = {};
+    try { result = JSON.parse(completion.choices[0].message.content || "{}"); }
+    catch { result = {}; }
 
-    // Step 2 — Generate image with DALL-E 3 (paid plans only)
+    // Step 2 â Generate image with DALL-E 3 (paid plans only)
     const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
     let imageUrl: string | null = null;
     if (!planLimits.images) {
-      // Free plan — skip image generation
+      // Free plan â skip image generation
     } else try {
       const dallePrompt = result.imagePrompt
         ? `${result.imagePrompt}. No text, no words, no letters anywhere in the image.`
@@ -55,7 +57,7 @@ Keep caption under 200 words. Make it feel authentic, not like an ad.`;
 
       imageUrl = imageResponse.data[0]?.url ?? null;
     } catch {
-      // Image generation failed — post continues without image
+      // Image generation failed â post continues without image
     }
 
     const post = await prisma.socialPost.create({
