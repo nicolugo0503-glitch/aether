@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // Live badge counts — fire in parallel, fail silently
+  // Live badge counts â fire in parallel, fail silently
   const [inboxUnread, competitorChanges] = await Promise.all([
     prisma.emailReply
       .count({ where: { userId: user.id, status: "new" } })
@@ -29,23 +29,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
   ]);
 
   const NAV = [
-    { href: "/dashboard",             label: "Overview",     icon: "LayoutDashboard", exact: true },
-    { href: "/dashboard/agents",      label: "AI Employees", icon: "Bot" },
-    { href: "/dashboard/workflows",   label: "Workflows",    icon: "Workflow" },
-    { href: "/dashboard/campaigns",   label: "Campaigns",    icon: "Megaphone" },
-    { href: "/dashboard/social",      label: "Social Media", icon: "Share2" },
-    { href: "/dashboard/inbox",       label: "Smart Inbox",  icon: "Inbox",   badge: inboxUnread },
-    { href: "/dashboard/competitors", label: "Competitors",  icon: "Radar",   badge: competitorChanges },
-    { href: "/dashboard/runs",        label: "Runs",         icon: "ListChecks" },
-    { href: "/dashboard/analytics",   label: "Analytics",    icon: "BarChart3" },
-    { href: "/dashboard/team",        label: "Team",         icon: "Users" },
-    { href: "/dashboard/referrals",   label: "Referrals",    icon: "Gift" },
-    { href: "/dashboard/billing",     label: "Billing",      icon: "CreditCard" },
-    { href: "/dashboard/settings",    label: "Settings",     icon: "Settings" },
-    { href: "/dashboard/help",        label: "Help",         icon: "HelpCircle" },
+    { href: "/dashboard", label: "Overview", icon: "LayoutDashboard", exact: true },
+    { href: "/dashboard/agents", label: "AI Employees", icon: "Bot" },
+    { href: "/dashboard/workflows", label: "Workflows", icon: "Workflow" },
+    { href: "/dashboard/campaigns", label: "Campaigns", icon: "Megaphone" },
+    { href: "/dashboard/social", label: "Social Media", icon: "Share2" },
+    { href: "/dashboard/inbox", label: "Smart Inbox", icon: "Inbox", badge: inboxUnread },
+    { href: "/dashboard/competitors", label: "Competitors", icon: "Radar", badge: competitorChanges },
+    { href: "/dashboard/runs", label: "Runs", icon: "ListChecks" },
+    { href: "/dashboard/analytics", label: "Analytics", icon: "BarChart3" },
+    { href: "/dashboard/team", label: "Team", icon: "Users" },
+    { href: "/dashboard/referrals", label: "Referrals", icon: "Gift" },
+    { href: "/dashboard/billing", label: "Billing", icon: "CreditCard" },
+    { href: "/dashboard/settings", label: "Settings", icon: "Settings" },
+    { href: "/dashboard/help", label: "Help", icon: "HelpCircle" },
   ];
 
-  const initials = (user.name || user.email)[0].toUpperCase();
+  const initials = (user.name || user.email || "U")[0].toUpperCase();
   const displayName = user.name || user.email.split("@")[0];
 
   return (
