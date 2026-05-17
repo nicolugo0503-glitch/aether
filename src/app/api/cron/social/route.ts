@@ -19,7 +19,7 @@ const RANDOM_TOPICS = [
 
 export async function GET(req: NextRequest) {
   // Verify this is called by Vercel cron.
-  // IMPORTANT: if CRON_SECRET is not set, reject ALL requests — never fall through to
+  // IMPORTANT: if CRON_SECRET is not set, reject ALL requests â never fall through to
   // "Bearer undefined" which would make any attacker request pass.
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
   for (const user of dueUsers) {
     try {
       const planLimits = PLAN_LIMITS[toPlanKey(user.plan)];
-      const platforms: string[] = JSON.parse(user.schedulePlatforms || '["facebook","instagram"]');
+      let platforms: string[];
+      try { platforms = JSON.parse(user.schedulePlatforms || '["facebook","instagram"]'); }
+      catch { platforms = ["facebook", "instagram"]; }
       const topic = user.scheduleTopic || RANDOM_TOPICS[Math.floor(Math.random() * RANDOM_TOPICS.length)];
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -66,7 +68,9 @@ Return ONLY JSON:
         response_format: { type: "json_object" },
       });
 
-      const result = JSON.parse(completion.choices[0].message.content || "{}");
+      let result: { caption?: string; hashtags?: string; imagePrompt?: string } = {};
+      try { result = JSON.parse(completion.choices[0].message.content || "{}"); }
+      catch { result = {}; }
 
       // Generate image (paid plans only)
       let imageUrl: string | null = null;
