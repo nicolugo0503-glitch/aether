@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Play, Trash2, Plus, RefreshCw, Megaphone, ChevronDown, ChevronUp, Mail, CheckCircle2, XCircle, Loader2, Clock, Users, Zap, Target, TrendingUp, Radio, Sparkles } from "lucide-react";
+import { Play, Trash2, Plus, RefreshCw, Megaphone, ChevronDown, ChevronUp, Mail, CheckCircle2, XCircle, Loader2, Clock, Users, Zap, Target, TrendingUp, Radio, Sparkles, FlaskConical } from "lucide-react";
 
 interface Agent { id: string; name: string; role: string; }
 interface Campaign {
@@ -391,6 +391,12 @@ export default function CampaignsPage() {
                       style={{ background:"linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow:"0 0 14px rgba(124,58,237,0.3)" }}
                       title="AI-score every lead 1-100 before outreach">
                       <Sparkles className="h-3.5 w-3.5" />Score
+                    </Link>
+                    <Link href={`/dashboard/campaigns/${c.id}/ab-test`}
+                      className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white transition-all hover:opacity-90"
+                      style={{ background:"linear-gradient(135deg,#06b6d4,#0891b2)", boxShadow:"0 0 14px rgba(6,182,212,0.3)" }}
+                      title="Run an A/B test on this campaign's email — auto-elect the winner">
+                      <FlaskConical className="h-3.5 w-3.5" />A/B
                     </Link>
                     <button onClick={() => runCampaign(c.id)} disabled={!!runningId}
                       className="run-btn flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all"

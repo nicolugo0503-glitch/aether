@@ -152,6 +152,45 @@ export async function POST(req: NextRequest) {
     select: { id: true, hot: true, intent: true, score: true },
   });
 
+  // ── Credit reply back to A/B variant (best-effort) ───────
+  // Find the most recent "sent" VariantEvent for this lead inside the
+  // matched campaign and bump that variant's reply counters.
+  if (campaignId) {
+    try {
+      const sentEvent = await prisma.variantEvent.findFirst({
+        where: {
+          campaignId,
+          userId: user.id,
+          type: "sent",
+          leadEmail: parsed.fromEmail,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (sentEvent) {
+        await prisma.variantEvent.create({
+          data: {
+            variantId: sentEvent.variantId,
+            campaignId,
+            userId: user.id,
+            type: classification.hot ? "hot_reply" : "replied",
+            leadEmail: parsed.fromEmail,
+            leadName: parsed.fromName || null,
+            replyId: reply.id,
+          },
+        });
+        await prisma.campaignVariant.update({
+          where: { id: sentEvent.variantId },
+          data: {
+            repliedCount: { increment: 1 },
+            ...(classification.hot ? { hotRepliedCount: { increment: 1 } } : {}),
+          },
+        });
+      }
+    } catch (e) {
+      console.error("[ab] reply attribution failed:", e);
+    }
+  }
+
   // ── hot reply notification (best-effort) ──────────────────
   if (classification.hot && user.inboxNotifyHot && user.resendApiKey && user.fromEmail) {
     const fromName = parsed.fromName || parsed.fromEmail;

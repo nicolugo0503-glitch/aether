@@ -7,6 +7,13 @@ import { webSearch } from "@/lib/search";
 import { readSheetLeads, type Lead } from "@/lib/sheets";
 import { PLAN_LIMITS, toPlanKey } from "@/lib/stripe";
 import { scoreLeadsBatch, type LeadTier } from "@/lib/lead-scoring";
+import {
+  pickVariant,
+  renderTemplate,
+  pickWinner as pickWinnerStat,
+  type VariantInput,
+  type WinnerMetric,
+} from "@/lib/ab-testing";
 
 interface ScoreInfo {
   score: number;
@@ -114,10 +121,196 @@ export async function POST(req: NextRequest) {
     const leads = workQueue.slice(0, runsRemaining);
     const droppedByQuota = workQueue.length - leads.length;
 
+    // A/B test setup: if abTestEnabled && variants exist, use templates.
+    // Otherwise fall back to the original AI-generates-per-lead flow.
+    const variantRows: any[] = await prisma.campaignVariant.findMany({
+      where: { campaignId: campaign.id },
+      orderBy: { label: "asc" },
+    });
+    const useAbTest = campaign.abTestEnabled && variantRows.length > 0;
+    const weightsById: Record<string, number> = {};
+    const variantTemplatesById: Record<string, { subjectTemplate: string; bodyTemplate: string; label: string }> = {};
+    let liveVariants: VariantInput[] = [];
+    if (useAbTest) {
+      for (const v of variantRows) {
+        weightsById[v.id] = v.weight || 50;
+        variantTemplatesById[v.id] = {
+          subjectTemplate: v.subjectTemplate,
+          bodyTemplate: v.bodyTemplate,
+          label: v.label,
+        };
+      }
+      liveVariants = variantRows.map((v: any) => ({
+        id: v.id,
+        label: v.label,
+        name: v.name,
+        isControl: v.isControl,
+        isWinner: v.isWinner,
+        active: v.active,
+        sentCount: v.sentCount,
+        openedCount: v.openedCount,
+        clickedCount: v.clickedCount,
+        repliedCount: v.repliedCount,
+        hotRepliedCount: v.hotRepliedCount,
+        errorCount: v.errorCount,
+      }));
+    }
+
     const results: any[] = [];
 
     for (const lead of leads) {
       const scoreInfo = scoreByEmail.get(lead.email.toLowerCase());
+
+      if (useAbTest) {
+        // A/B-driven send path
+        const chosen = pickVariant(
+          { activeVariants: liveVariants, abWinnerVariantId: campaign.abWinnerVariantId },
+          weightsById,
+        );
+
+        if (!chosen) {
+          results.push({
+            lead: lead.email,
+            status: "error",
+            error: "A/B test has no active variants. Add a variant or pick a winner.",
+            score: scoreInfo?.score,
+            tier: scoreInfo?.tier,
+          });
+          continue;
+        }
+
+        try {
+          const tpl = variantTemplatesById[chosen.id];
+          const ctx = { name: lead.name, email: lead.email, company: lead.company };
+          const subjectLine = renderTemplate(tpl.subjectTemplate, ctx);
+          const bodyTxt = renderTemplate(tpl.bodyTemplate, ctx);
+
+          await sendEmail({
+            apiKey: user.resendApiKey,
+            from: user.fromEmail,
+            to: lead.email,
+            subject: subjectLine,
+            body: bodyTxt,
+          });
+
+          chosen.sentCount += 1;
+          await prisma.campaignVariant.update({
+            where: { id: chosen.id },
+            data: { sentCount: { increment: 1 } },
+          });
+          await prisma.variantEvent.create({
+            data: {
+              variantId: chosen.id,
+              campaignId: campaign.id,
+              userId: user.id,
+              type: "sent",
+              leadEmail: lead.email,
+              leadName: lead.name || null,
+            },
+          });
+
+          const outputText = "Subject: " + subjectLine + "\n\n" + bodyTxt;
+          await prisma.run.create({
+            data: {
+              agentId: agent.id,
+              userId: user.id,
+              input: "[A/B Variant " + chosen.label + "] " + lead.name + " <" + lead.email + ">",
+              output: outputText,
+              status: "success",
+              tokensIn: 0,
+              tokensOut: 0,
+              costCents: 0,
+              finishedAt: new Date(),
+            },
+          });
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { runsUsedThisPeriod: { increment: 1 } },
+          });
+
+          if (scoreInfo) {
+            await prisma.leadScore.updateMany({
+              where: { campaignId: campaign.id, leadEmail: lead.email },
+              data: { contacted: true },
+            });
+          }
+
+          results.push({
+            lead: lead.email,
+            status: "sent",
+            output: outputText,
+            variantId: chosen.id,
+            variantLabel: chosen.label,
+            score: scoreInfo?.score,
+            tier: scoreInfo?.tier,
+          });
+        } catch (err: any) {
+          chosen.errorCount += 1;
+          await prisma.campaignVariant.update({
+            where: { id: chosen.id },
+            data: { errorCount: { increment: 1 } },
+          });
+          await prisma.variantEvent.create({
+            data: {
+              variantId: chosen.id,
+              campaignId: campaign.id,
+              userId: user.id,
+              type: "error",
+              leadEmail: lead.email,
+              errorMessage: String(err.message || err).slice(0, 500),
+            },
+          });
+          results.push({
+            lead: lead.email,
+            status: "error",
+            error: err.message,
+            variantId: chosen.id,
+            variantLabel: chosen.label,
+            score: scoreInfo?.score,
+            tier: scoreInfo?.tier,
+          });
+        }
+
+        // After every send, if auto-pick is on, check whether we can elect a winner.
+        if (
+          campaign.abAutoPickWinner &&
+          !campaign.abWinnerVariantId &&
+          liveVariants.length >= 2
+        ) {
+          try {
+            const metric = (campaign.abWinnerMetric || "reply_rate") as WinnerMetric;
+            const r = pickWinnerStat(
+              liveVariants,
+              metric,
+              campaign.abMinSampleSize || 20,
+              campaign.abConfidence || 95,
+            );
+            if (r.winnerId) {
+              await prisma.$transaction([
+                prisma.campaignVariant.updateMany({
+                  where: { campaignId: campaign.id },
+                  data: { isWinner: false, active: false },
+                }),
+                prisma.campaignVariant.update({
+                  where: { id: r.winnerId },
+                  data: { isWinner: true, active: true },
+                }),
+                prisma.campaign.update({
+                  where: { id: campaign.id },
+                  data: { abWinnerVariantId: r.winnerId, abWinnerPickedAt: new Date() },
+                }),
+              ]);
+              campaign.abWinnerVariantId = r.winnerId;
+            }
+          } catch (e) {
+            console.error("[ab] auto-pick winner failed:", e);
+          }
+        }
+
+        continue;
+      }
+
+      // Legacy AI-per-lead flow
       try {
         let context = "Lead name: " + lead.name + "\nLead email: " + lead.email;
         if (lead.company) context += "\nCompany: " + lead.company;
