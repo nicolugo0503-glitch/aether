@@ -5,12 +5,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg:         "#000000",
-        panel:      "#0a0a0a",
-        border:     "rgba(255,255,255,0.06)",
-        muted:      "#71717a",
+        bg:         "#f4f5f7",
+        panel:      "#ffffff",
+        border:     "#eaecf0",
+        muted:      "#6b7280",
         accent:     "#7c3aed",
-        "accent-2": "#22d3ee",
+        "accent-2": "#0ea5e9",
       },
       fontFamily: {
         sans: ["ui-sans-serif", "system-ui", "Inter", "-apple-system", "sans-serif"],
