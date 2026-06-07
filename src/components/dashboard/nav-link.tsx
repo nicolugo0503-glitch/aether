@@ -1,4 +1,4 @@
-h"use client";
+"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -42,7 +42,7 @@ export function NavLink({
       {/* active indicator bar */}
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full transition-all duration-200"
-        style={{av
+        style={{
           background: "linear-gradient(to bottom, #a78bfa, #7c3aed)",
           opacity: isActive ? 1 : 0,
           boxShadow: isActive ? "0 0 8px rgba(167,139,250,0.6)" : "none",
