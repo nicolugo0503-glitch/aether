@@ -4,12 +4,12 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, ListChecks, CreditCard,
   Settings, Megaphone, Share2, MessageSquare, Gift, BarChart3,
-  Users, Workflow, Radar, Inbox, HelpCircle, LucideIcon,
+  Users, Workflow, Radar, Inbox, LucideIcon,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Bot, ListChecks, CreditCard, Settings, Megaphone, Share2, MessageSquare, Gift, BarChart3,
-  Users, Workflow, Radar, Inbox, HelpCircle,
+  Users, Workflow, Radar, Inbox,
 };
 
 export function NavLink({
