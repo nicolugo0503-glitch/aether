@@ -22,7 +22,7 @@ function genSparkline(seed: number, n = 10, trend: "up" | "down" | "flat" = "up"
     const noise = ((seed * (i + 1) * 1234567) % 13) - 6;
     v += trend === "up" ? 2 + noise * 0.4 : trend === "down" ? -1 + noise * 0.4 : noise;
     pts.push(Math.max(5, Math.min(95, v)));
-  }
+  }h
   return pts;
 }
 
